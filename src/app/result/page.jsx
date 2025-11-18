@@ -5,19 +5,6 @@ import Link from "next/link";
 import Navbar from "../../Components/Navbar/Navbar";
 import axios from "axios";
 
-const colGradients = [
-  "bg-gradient-to-r from-orange-400 to-orange-600 text-white",
-  "bg-gradient-to-r from-pink-600 to-pink-400 text-white",
-  "bg-gradient-to-r from-yellow-300 to-yellow-500 text-slate-900",
-  "bg-gradient-to-r from-blue-400 to-blue-700 text-white",
-  "bg-gradient-to-r from-indigo-500 to-cyan-400 text-white",
-  "bg-gradient-to-r from-green-400 to-green-600 text-white",
-  "bg-gradient-to-r from-red-400 to-rose-600 text-white",
-  "bg-gradient-to-r from-amber-500 to-yellow-300 text-slate-900",
-  "bg-gradient-to-r from-emerald-500 to-lime-400 text-white",
-  "bg-gradient-to-r from-purple-700 to-pink-600 text-white",
-];
-
 const columnRanges = [
   { label: "10-19", start: 10, end: 19 },
   { label: "30-39", start: 30, end: 39 },
@@ -126,34 +113,34 @@ const Page = () => {
   }, [selectedCol]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900">
+    <div className="min-h-screen bg-white">
 
 
       <div className="max-w-7xl mx-auto p-6 pt-8">
         {/* Header */}
         <div className="text-center mb-8">
-          <h1 className="text-3xl md:text-4xl font-bold text-white mb-2">
+          <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-2">
             Game Results Table
           </h1>
-          <div className="w-24 h-1 bg-gradient-to-r from-purple-500 to-pink-500 mx-auto rounded-full"></div>
+          <div className="w-24 h-1 bg-gray-800 mx-auto rounded-full"></div>
         </div>
 
         {/* Range Selector */}
-        <div className="bg-gradient-to-r from-slate-800/95 to-slate-700/95 rounded-2xl shadow-2xl border border-slate-700/50 backdrop-blur-sm p-6 mb-8">
+        <div className="bg-white rounded-lg shadow-md border border-gray-200 p-6 mb-8">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-6">
             <div className="flex items-center gap-2">
-              <Grid3x3 className="w-5 h-5 text-blue-400" />
-              <span className="text-slate-200 font-medium">Number Range:</span>
+              <Grid3x3 className="w-5 h-5 text-gray-700" />
+              <span className="text-gray-700 font-medium">Number Range:</span>
             </div>
             <div className="flex gap-2">
               {columnRanges.map((col, idx) => (
                 <button
                   key={col.label}
                   onClick={() => setSelectedCol(idx)}
-                  className={`px-6 py-3 rounded-xl font-bold text-sm border transition-all duration-200 hover:scale-105 active:scale-95 ${
+                  className={`px-6 py-3 rounded-lg font-bold text-sm border transition-all duration-200 ${
                     selectedCol === idx
-                      ? "bg-gradient-to-r from-purple-700 to-pink-600 text-white shadow-lg border-pink-500 scale-105"
-                      : "bg-slate-800/80 border-slate-600 text-slate-300 hover:bg-slate-700 hover:border-pink-400 hover:text-white"
+                      ? "bg-gray-800 text-white shadow-sm border-gray-900"
+                      : "bg-white border-gray-300 text-gray-700 hover:bg-gray-50 hover:border-gray-400"
                   }`}
                 >
                   {col.label}
@@ -164,29 +151,29 @@ const Page = () => {
         </div>
 
         {/* Table */}
-        <div className="bg-gradient-to-r from-slate-800/95 to-slate-700/95 rounded-2xl shadow-2xl border border-slate-700/50 backdrop-blur-sm p-6">
+        <div className="bg-white rounded-lg shadow-md border border-gray-200 p-6">
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-3">
-              <Clock className="w-5 h-5 text-green-400" />
-              <h2 className="text-xl font-semibold text-white">
+              <Clock className="w-5 h-5 text-gray-700" />
+              <h2 className="text-xl font-semibold text-gray-900">
                 Live Results - Range {columnRanges[selectedCol].label}
               </h2>
             </div>
           </div>
 
-          <div className="overflow-auto rounded-xl shadow-xl border border-slate-600/50">
-            <table className="w-full min-w-[900px] border-collapse bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 rounded-xl">
+          <div className="overflow-auto rounded-lg shadow-sm border border-gray-200">
+            <table className="w-full min-w-[900px] border-collapse bg-white rounded-lg">
               <thead>
-                <tr>
-                  <th className="py-4 px-4 text-sm font-bold text-left text-white sticky left-0 bg-slate-900 z-10 border-b border-slate-700/50">
+                <tr className="bg-gray-900">
+                  <th className="py-4 px-4 text-sm font-bold text-left text-gray-50 sticky left-0 bg-gray-900 z-10 border-b border-gray-300">
                     <div className="flex items-center gap-2">
-                      <Clock className="w-4 h-4 text-blue-400" />
+                      <Clock className="w-4 h-4 text-gray-700" />
                       Time Slot
                     </div>
                   </th>
                   {columns.map((col) => (
-                    <th key={col}>
-                      <span className="font-bold text-slate-200">{col}</span>
+                    <th key={col} className="py-3 px-4 border-b border-gray-300">
+                      <span className="font-bold text-gray-50">{col}</span>
                     </th>
                   ))}
                 </tr>
@@ -196,7 +183,7 @@ const Page = () => {
                   <tr>
                     <td
                       colSpan={columns.length + 1}
-                      className="text-center py-8 text-slate-400"
+                      className="text-center py-8 text-gray-500"
                     >
                       No data found.
                     </td>
@@ -205,23 +192,23 @@ const Page = () => {
                 {tableData.map((row) => (
                   <tr
                     key={row.drawTime}
-                    className="border-t border-slate-700/30 hover:bg-slate-700/20 transition-colors duration-150"
+                    className="border-t border-gray-200 hover:bg-gray-50 transition-colors duration-150"
                   >
-                    <td className="font-bold py-4 px-4 text-left text-slate-200 sticky left-0 bg-slate-900 z-10 border-r border-slate-700/50">
+                    <td className="font-bold py-4 px-4 text-left text-gray-50 sticky left-0 bg-gray-900 z-10 border-r border-gray-200">
                       <div className="flex items-center gap-2">
-                        <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                        <div className="w-2 h-2 bg-gray-600 rounded-full"></div>
                         {row.drawTime}
                       </div>
                     </td>
                     {columns.map((col, colIdx) => (
-                      <td key={colIdx}>
+                      <td key={colIdx} className="py-2 px-2">
                         <div
-                          className={`flex-1 py-4 px-4 text-center font-bold text-xl rounded-lg m-1 ${colGradients[colIdx % colGradients.length]} border border-slate-600/30 shadow-lg transition-all duration-200`}
+                          className={`flex-1 py-3 px-4 text-center font-bold text-lg rounded border border-gray-300 bg-white shadow-sm transition-all duration-200`}
                           style={{ minWidth: "90px" }}
                         >
-                          <span className="text-2xl font-extrabold tracking-wide">
+                          <span className="text-xl font-bold tracking-wide text-gray-900">
                             {loading ? (
-                              <span className="animate-pulse text-slate-400">...</span>
+                              <span className="animate-pulse text-gray-400">...</span>
                             ) : (
                               row.numbersByCol[colIdx] ?? "--"
                             )}
@@ -236,11 +223,11 @@ const Page = () => {
           </div>
 
           <div className="mt-6 flex flex-col sm:flex-row justify-between items-center gap-4">
-            <div className="text-sm text-slate-400">
+            <div className="text-sm text-gray-600">
               Showing results for{" "}
-              <span className="font-semibold text-slate-200">{todayDate}</span>{" "}
+              <span className="font-semibold text-gray-900">{todayDate}</span>{" "}
               • Range{" "}
-              <span className="font-semibold text-slate-200">
+              <span className="font-semibold text-gray-900">
                 {columnRanges[selectedCol].label}
               </span>
             </div>

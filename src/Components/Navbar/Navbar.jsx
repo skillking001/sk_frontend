@@ -1,16 +1,26 @@
 "use client";
 
-import React from "react";
-import {
-  RefreshCcw,
-  List,
-  XCircle,
-  KeyRound,
-  LogOut,
-  UserCircle,
-} from "lucide-react";
+import React, { useState, useEffect } from "react";
+import { RefreshCcw, List, XCircle, KeyRound, LogOut, UserCircle } from "lucide-react";
+import axios from "axios";
 
 const Navbar = () => {
+  const [adminId, setAdminId] = useState("-");
+
+  // Fetch the adminId from the userToken in localStorage
+  useEffect(() => {
+    try {
+      const token = localStorage.getItem("userToken");
+      if (token) {
+        const payload = JSON.parse(atob(token.split(".")[1]));
+        setAdminId(payload?.id || "-");  // Set adminId from payload
+      }
+    } catch {
+      setAdminId("-");  
+    }
+  }, []);
+  
+
   const actions = [
     { name: "Account", href: "/account", icon: <UserCircle className="w-5 h-5" /> },
     { name: "Reprint", href: "/reprint", icon: <RefreshCcw className="w-5 h-5" /> },
@@ -19,10 +29,27 @@ const Navbar = () => {
     { name: "Password", href: "/password", icon: <KeyRound className="w-5 h-5" /> },
   ];
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
     if (typeof window !== "undefined") {
-      localStorage.removeItem("userToken");
-      window.location.href = "/";
+      try {
+        // Make sure adminId is available from state
+        if (adminId && adminId !== "-") {
+          const response = await axios.post(`${process.env.NEXT_PUBLIC_API_BASE_URL}/logout`, { adminId });
+
+          if (response.status === 200) {
+            // Clear the token and any necessary localStorage items
+            localStorage.removeItem("userToken");
+            localStorage.removeItem("adminId"); // Assuming you store the adminId as well
+
+            // Redirect to home page after successful logout
+            window.location.href = "/";
+          }
+        } else {
+          console.warn("Admin ID not found in localStorage.");
+        }
+      } catch (error) {
+        console.error("Error during logout:", error);
+      }
     }
   };
 
