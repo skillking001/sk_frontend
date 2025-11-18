@@ -3,13 +3,14 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev -p 3019",
-  "build": "next build",
-  "start": "next start -p 3019",
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
     "lint": "next lint"
   },
   "dependencies": {
     "axios": "^1.10.0",
+    "canvas-confetti": "^1.9.4",
     "dayjs": "^1.11.13",
     "framer-motion": "^12.23.3",
     "html2canvas": "^1.4.1",
@@ -21,6 +22,7 @@
     "react": "^19.0.0",
     "react-barcode": "^1.6.1",
     "react-dom": "^19.0.0",
+    "react-hot-toast": "^2.6.0",
     "react-to-print": "^3.1.1"
   },
   "devDependencies": {
