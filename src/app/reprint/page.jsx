@@ -29,105 +29,148 @@ function getLoginIdFromToken() {
 
 function generatePrintReceipt(data, ticketId) {
   const lineHeight = 4;
-  const ticketArray = (data.ticketNumber || "").split(", ").filter(Boolean);
-  const ticketRows = Math.ceil(ticketArray.length / 3);
 
+  /* -----------------------------------------
+     ⭐ FIX: Convert ticketNumber JSON array → string list
+     ----------------------------------------- */
+  let ticketArray = [];
+
+  if (Array.isArray(data.ticketNumber)) {
+    // JSON array from database
+    ticketArray = data.ticketNumber.map(
+      (item) => `${item.ticketNumber} : ${item.quantity}`
+    );
+  } else if (typeof data.ticketNumber === "string") {
+    // Already formatted string
+    ticketArray = data.ticketNumber.split(", ").filter(Boolean);
+  } else {
+    ticketArray = [];
+  }
+
+  /* -----------------------------------------
+     🧮 Height Calculation
+     ----------------------------------------- */
+  const rows = Math.ceil(ticketArray.length / 3);
   const afterListLineGap = 5;
   const totalsBlock = 5 + 5 + 8;
   const barcodeBlock = 20 + 10;
 
   let requiredHeight =
-    50 +
-    ticketRows * lineHeight +
-    afterListLineGap +
-    totalsBlock +
-    barcodeBlock;
+    50 + rows * lineHeight + afterListLineGap + totalsBlock + barcodeBlock;
 
   const pageHeight = Math.max(297, requiredHeight);
 
+  /* -----------------------------------------
+     📄 Create PDF
+     ----------------------------------------- */
   const pdf = new jsPDF({
     orientation: "portrait",
     unit: "mm",
     format: [80, pageHeight],
   });
 
+  /* -----------------------------------------
+     🏷️ Header
+     ----------------------------------------- */
   pdf.setFontSize(10);
-  pdf.text("Skill Jackpot", 40, 10, { align: "center" });
+  pdf.text("Skill King", 40, 10, { align: "center" });
+
   pdf.setFontSize(8);
   pdf.text("This game for Adults Amusement Only", 40, 15, { align: "center" });
   pdf.text("GST No Issued by Govt of India", 40, 20, { align: "center" });
   pdf.text("GST No: In Process", 40, 25, { align: "center" });
+
   pdf.text(`Date: ${data.gameTime}`, 40, 30, { align: "center" });
 
   pdf.setLineWidth(0.5);
   pdf.line(5, 33, 75, 33);
 
+  /* -----------------------------------------
+     🕒 Draw Time + Login Id
+     ----------------------------------------- */
   pdf.setFontSize(9);
+
   const drawTimeText = Array.isArray(data.drawTime)
     ? data.drawTime.length > 1
       ? `Draw Times: ${data.drawTime.join(", ")}`
       : `Draw Time: ${data.drawTime[0]}`
     : `Draw Time: ${data.drawTime}`;
+
   pdf.text(drawTimeText, 5, 38);
   pdf.text(`Login Id: ${data.loginId || "-"}`, 5, 43);
 
   pdf.line(5, 45, 75, 45);
 
+  /* -----------------------------------------
+     🎟️ Ticket List
+     ----------------------------------------- */
   let yPos = 50;
+
   for (let i = 0; i < ticketArray.length; i += 3) {
-    let rowText = "";
+    let row = "";
+
     for (let j = 0; j < 3 && i + j < ticketArray.length; j++) {
-      const ticket = ticketArray[i + j];
-      const formattedTicket = ticket.substring(0, 18);
-      rowText += formattedTicket.padEnd(25, " ");
+      const txt = ticketArray[i + j].substring(0, 18);
+      row += txt.padEnd(25, " ");
     }
-    pdf.setFontSize(7);
-    pdf.text(rowText.trim(), 5, yPos);
+
+    pdf.text(row.trim(), 5, yPos);
     yPos += lineHeight;
   }
 
   pdf.line(5, yPos, 75, yPos);
   yPos += 5;
 
+  /* -----------------------------------------
+     📊 Totals
+     ----------------------------------------- */
   pdf.setFontSize(10);
   pdf.text(`Total Quantity : ${data.totalQuatity}`, 5, yPos);
   yPos += 5;
+
   pdf.text(`Total Amount : ${data.totalPoints}`, 5, yPos);
   yPos += 8;
 
-  /* ✅ Barcode Section — Only ticketNo */
-  const barcodeValue = `${ticketId}`; // only the ticket id in barcode
+  /* -----------------------------------------
+     🔢 Barcode (only ticket ID)
+     ----------------------------------------- */
+  const barcodeValue = `${ticketId}`;
 
   const canvas = document.createElement("canvas");
   JsBarcode(canvas, barcodeValue, {
     format: "CODE128",
     width: 2,
     height: 50,
-    displayValue: false, // hide text below barcode
+    displayValue: false,
     margin: 5,
   });
 
-  const barcodeImage = canvas.toDataURL("image/png");
-  pdf.addImage(barcodeImage, "PNG", 10, yPos, 60, 20);
+  const barcodeImg = canvas.toDataURL("image/png");
+  pdf.addImage(barcodeImg, "PNG", 10, yPos, 60, 20);
 
   yPos += 28;
 
-  // ✅ Show Ticket No text below barcode
+  /* -----------------------------------------
+     🧾 Ticket No (below barcode)
+     ----------------------------------------- */
   pdf.setFontSize(12);
   pdf.text(`Ticket No: ${ticketId}`, 40, yPos, { align: "center" });
 
+  /* -----------------------------------------
+     🖨️ Auto Print
+     ----------------------------------------- */
   pdf.autoPrint();
   const pdfBlob = pdf.output("blob");
-  const pdfUrl = URL.createObjectURL(pdfBlob);
-  const printWindow = window.open(pdfUrl);
-  if (printWindow) {
-    printWindow.onload = function () {
-      printWindow.print();
-    };
+  const url = URL.createObjectURL(pdfBlob);
+  const win = window.open(url);
+
+  if (win) {
+    win.onload = () => win.print();
   } else {
-    toast.error("Please allow pop-ups to print the ticket.");
+    toast.error("Enable pop-ups to print.");
   }
 }
+
 
 /* 🎟️ Main Page */
 const ReprintPage = () => {
@@ -170,36 +213,43 @@ const ReprintPage = () => {
   }, []);
 
   /* 🔹 Print a specific ticket */
-  const handlePrint = (ticket) => {
-    if (isPrintingRef.current) return;
-    isPrintingRef.current = true;
-    setIsPrinting(true);
+const handlePrint = (ticket) => {
+  if (isPrintingRef.current) return;
+  isPrintingRef.current = true;
+  setIsPrinting(true);
 
-    try {
-      toast.success(`Printing Ticket #${ticket.ticketNo}`);
+  try {
+    toast.success(`Printing Ticket #${ticket.ticketNo}`);
 
-      const loginId = getLoginIdFromToken();
+    const loginId = getLoginIdFromToken();
 
-generatePrintReceipt(
-  {
-    gameTime: `${ticket.gameDate} ${ticket.gameTime}`,
-    drawTime: ticket.drawTime,
-    loginId: getLoginIdFromToken(),
-    ticketNumber: ticket.ticketNumber,
-    totalQuatity: ticket.totalQuatity,
-    totalPoints: ticket.totalPoints,
-  },
-  ticket.ticketNo
-);
+    const formattedTicketNumber = Array.isArray(ticket.ticketNumber)
+      ? ticket.ticketNumber
+          .map((i) => `${i.ticketNumber} : ${i.quantity}`)
+          .join(", ")
+      : ticket.ticketNumber;
 
-    } catch (error) {
-      toast.error("Error while printing ticket.");
-      console.error(error);
-    } finally {
-      isPrintingRef.current = false;
-      setIsPrinting(false);
-    }
-  };
+    generatePrintReceipt(
+      {
+        gameTime: `${ticket.gameDate} ${ticket.gameTime}`,
+        drawTime: ticket.drawTime,
+        loginId: getLoginIdFromToken(),
+        ticketNumber: formattedTicketNumber,   // ✅ FIXED HERE
+        totalQuatity: ticket.totalQuatity,
+        totalPoints: ticket.totalPoints,
+      },
+      ticket.ticketNo
+    );
+
+  } catch (error) {
+    toast.error("Error while printing ticket.");
+    console.error(error);
+  } finally {
+    isPrintingRef.current = false;
+    setIsPrinting(false);
+  }
+};
+
 
   /* 🔎 Search Filter */
   const filtered = tickets.filter((row) => {

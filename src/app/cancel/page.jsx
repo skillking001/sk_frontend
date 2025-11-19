@@ -25,6 +25,8 @@ function getLoginIdFromToken() {
   return null;
 }
 
+
+
 /* ---------- Page Component ---------- */
 export default function Page() {
   const [tickets, setTickets] = useState([]);
@@ -67,17 +69,22 @@ export default function Page() {
             ? JSON.parse(ticket.drawTime).join(", ")
             : ticket.drawTime;
 
-          let formattedTicketNo = "";
-          if (typeof ticket.ticketNumber === "object") {
-            formattedTicketNo = Object.entries(ticket.ticketNumber)
-              .map(([key, val]) => `${key} : ${val}`)
-              .join(", ");
-          } else if (typeof ticket.ticketNumber === "string") {
-            formattedTicketNo = ticket.ticketNumber
-              .replace(/[{}"]/g, "")
-              .replace(/:/g, " : ")
-              .replace(/,/g, ", ");
-          }
+let formattedTicketNo = "";
+if (Array.isArray(ticket.ticketNumber)) {
+  formattedTicketNo = ticket.ticketNumber
+    .map((item) => `${item.ticketNumber} : ${item.quantity}`)
+    .join(", ");
+} else if (typeof ticket.ticketNumber === "string") {
+  try {
+    const parsed = JSON.parse(ticket.ticketNumber);
+    formattedTicketNo = parsed
+      .map((item) => `${item.ticketNumber} : ${item.quantity}`)
+      .join(", ");
+  } catch {
+    formattedTicketNo = ticket.ticketNumber;
+  }
+}
+
 
           allTickets.push({
             sr: sr++,
@@ -121,17 +128,22 @@ export default function Page() {
             ? JSON.parse(ticket.drawTime).join(", ")
             : ticket.drawTime;
 
-          let formattedTicketNo = "";
-          if (typeof ticket.ticketNumber === "object") {
-            formattedTicketNo = Object.entries(ticket.ticketNumber)
-              .map(([key, val]) => `${key} : ${val}`)
-              .join(", ");
-          } else if (typeof ticket.ticketNumber === "string") {
-            formattedTicketNo = ticket.ticketNumber
-              .replace(/[{}"]/g, "")
-              .replace(/:/g, " : ")
-              .replace(/,/g, ", ");
-          }
+let formattedTicketNo = "";
+if (Array.isArray(ticket.ticketNumber)) {
+  formattedTicketNo = ticket.ticketNumber
+    .map((item) => `${item.ticketNumber} : ${item.quantity}`)
+    .join(", ");
+} else if (typeof ticket.ticketNumber === "string") {
+  try {
+    const parsed = JSON.parse(ticket.ticketNumber);
+    formattedTicketNo = parsed
+      .map((item) => `${item.ticketNumber} : ${item.quantity}`)
+      .join(", ");
+  } catch {
+    formattedTicketNo = ticket.ticketNumber;
+  }
+}
+
 
           allCancelled.push({
             sr: sr++,

@@ -69,7 +69,7 @@ const Login = () => {
             <div className="bg-gradient-to-r from-purple-400 to-pink-400 p-3 rounded-md inline-block mb-4">
               <img
               src="/Logo.png"
-              alt="Skill Jackpot"
+              alt="Skill KING"
               draggable="false"
               className="w-[140px] lg:w-[180px] h-auto "
             />

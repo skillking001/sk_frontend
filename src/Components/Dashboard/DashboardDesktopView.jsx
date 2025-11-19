@@ -671,7 +671,6 @@ const handleCheckTicketStatus = async (ticketNumber) => {
 };
 
 
-
 const handleClaimTicket = async () => {
   try {
     if (!transactionInput.trim()) {
@@ -1181,7 +1180,7 @@ const handleClaimTicket = async () => {
     });
 
     pdf.setFontSize(10);
-    pdf.text("Skill Jackpot", 40, 10, { align: "center" });
+    pdf.text("SKILL KING", 40, 10, { align: "center" });
     pdf.setFontSize(8);
     pdf.text("This game for Adults Amusement Only", 40, 15, {
       align: "center",
