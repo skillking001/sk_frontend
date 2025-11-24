@@ -21,6 +21,7 @@ import JsBarcode from "jsbarcode";
 import AdvanceDrawModal from "../../Components/AdvanceDrawModal/AdvanceDrawModal.jsx";
 import TicketStatusModal from "../../Components/TicketStatusModal/TicketStatusModal.jsx";
 import { useRouter } from "next/navigation.js";
+import LoadingOverlay from "../LoadingOverlay/LoadingOverlay.jsx";
 
 // Helper for number ranges
 const range = (start, end) =>
@@ -603,15 +604,16 @@ const handleCheckTicketStatus = async (ticketNumber) => {
 
     const data = res.data;
 
-    // 🚫 Ticket Not Found / Invalid
+    // ------------------ ERROR / NOT FOUND ------------------
     if (data.status === "error" || res.status === 404) {
       setIsClaimable(false);
       setTicketStatusData({
         status: "error",
         ticketId: ticketNumber,
-        drawTime: "-",
+        drawTimes: [],
         drawDate: "-",
-        prizeAmount: 0,
+        matches: [],
+        totalWinningAmount: 0,
         claimedDate: null,
         claimedTime: null,
       });
@@ -619,53 +621,122 @@ const handleCheckTicketStatus = async (ticketNumber) => {
       return;
     }
 
-    // ✅ Default: disable claim unless explicitly winner
-    setIsClaimable(false);
+    // PREPARE SAFE VALUES
+    const drawTimes = data?.drawTimes || [];
+    const matches = data?.matches || [];
+    const totalWinningAmount = data?.totalWinningAmount || 0;
 
-    // ✅ Build Status Data for all valid responses
-    setTicketStatusData({
-      status: data.status,
-      ticketId: ticketNumber,
-      drawTime: data.drawTimes ? data.drawTimes.join(", ") : "-",
-      drawDate: data.drawDate || "-",
-      prizeAmount:
-        data.status === "winner"
-          ? data.matches?.reduce((sum, m) => sum + (m.payout || 0), 0) ||
-            data.winningTickets?.reduce(
-              (sum, t) => sum + (t.totalWinningValue || 0),
-              0
-            )
-          : 0,
-      claimedDate: data.claimedDetails?.claimedDate || null,
-      claimedTime: data.claimedDetails?.claimedTime || null,
-    });
+    // ------------------ ALREADY CLAIMED ------------------
+    if (data.status === "already_claimed") {
+      setIsClaimable(false);
+      setTicketStatusData({
+        status: "already_claimed",
+        ticketId: ticketNumber,
+        drawTimes: drawTimes,
+        drawDate: data.drawDate || "-",
+        matches: [],
+        totalWinningAmount: 0,
+        claimedDate: data.claimedDate,
+        claimedTime: data.claimedTime,
+      });
 
-    // ✅ Enable claim button only for winners
-    if (data.status === "winner") {
-      setIsClaimable(true);
-      toast.success("🎉 This is a winning ticket! You can now claim it.");
-    } else if (data.status === "already_claimed") {
+      // Toast
       toast.error("⚠️ This ticket has already been claimed.");
-    } else if (data.status === "no_win" || data.status === "no_winning") {
-      toast.error("❌ This ticket has no winning numbers.");
-    } else if (data.status === "no_winning_data" || data.status === "no_match") {
-      toast("ℹ️ No winning data or draw declared yet.", { icon: "ℹ️" });
+
+      setTicketStatusModalOpen(true);
+      return;
     }
 
-    setTicketStatusModalOpen(true);
-  } catch (error) {
-    console.error("❌ Error checking ticket:", error);
+    // ------------------ NO WIN ------------------
+    if (data.status === "no_win") {
+      setIsClaimable(false);
+      setTicketStatusData({
+        status: "no_win",
+        ticketId: ticketNumber,
+        drawTimes,
+        drawDate: data.drawDate || "-",
+        matches: [],
+        totalWinningAmount: 0,
+        claimedDate: null,
+        claimedTime: null,
+      });
 
-    setIsClaimable(false); // always disable on error
+      toast.error("❌ This ticket has no winning numbers.");
+
+      setTicketStatusModalOpen(true);
+      return;
+    }
+
+    // ------------------ NO WINNING DECLARATION YET ------------------
+    if (data.status === "no_winning_data") {
+      setIsClaimable(false);
+      setTicketStatusData({
+        status: "no_winning_data",
+        ticketId: ticketNumber,
+        drawTimes: [],
+        drawDate: data.drawDate || "-",
+        matches: [],
+        totalWinningAmount: 0,
+        claimedDate: null,
+        claimedTime: null,
+      });
+
+      toast("ℹ️ Winning numbers not published yet.", { icon: "ℹ️" });
+
+      setTicketStatusModalOpen(true);
+      return;
+    }
+
+    // ------------------ WINNER ------------------
+    if (data.status === "winner") {
+      setIsClaimable(true);
+
+      setTicketStatusData({
+        status: "winner",
+        ticketId: ticketNumber,
+        drawTimes,
+        drawDate: data.drawDate,
+        matches: matches,
+        totalWinningAmount: totalWinningAmount,
+        claimedDate: null,
+        claimedTime: null,
+      });
+
+      toast.success("🎉 This is a winning ticket! You can now claim it.");
+
+      setTicketStatusModalOpen(true);
+      return;
+    }
+
+    // ------------------ UNKNOWN STATUS ------------------
+    setIsClaimable(false);
     setTicketStatusData({
       status: "error",
       ticketId: ticketNumber,
-      drawTime: "-",
+      drawTimes: [],
       drawDate: "-",
-      prizeAmount: 0,
+      matches: [],
+      totalWinningAmount: 0,
       claimedDate: null,
       claimedTime: null,
     });
+    setTicketStatusModalOpen(true);
+
+  } catch (error) {
+    console.error("❌ Error checking ticket:", error);
+
+    setIsClaimable(false);
+    setTicketStatusData({
+      status: "error",
+      ticketId: ticketNumber,
+      drawTimes: [],
+      drawDate: "-",
+      matches: [],
+      totalWinningAmount: 0,
+      claimedDate: null,
+      claimedTime: null,
+    });
+
     setTicketStatusModalOpen(true);
   }
 };
@@ -1134,7 +1205,7 @@ const handleClaimTicket = async () => {
         loginId: id,
       })
       .then((res) => {
-        setLastPoints(res.data.lastTotalPoint ?? "-");
+        setLastPoints(parseInt(res.data.lastTotalPoint) ?? "-");
         setLastTicket(res.data.lastTicketNumber ?? "-");
         setBalance(res.data.balance ?? "-");
       })
@@ -1313,7 +1384,7 @@ function assignValueToNumber(num, value, cellKey) {
         { loginId: id }
       );
 
-      setLastPoints(res.data.lastTotalPoint ?? "-");
+      setLastPoints(parseInt(res.data.lastTotalPoint) ?? "-");
       setLastTicket(res.data.lastTicketNumber ?? "-");
       setBalance(res.data.balance ?? "-");
     } catch (err) {

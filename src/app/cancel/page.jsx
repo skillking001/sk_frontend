@@ -5,6 +5,7 @@ import Navbar from "../../Components/Navbar/Navbar.jsx";
 import Link from "next/link";
 import axios from "axios";
 import toast from "react-hot-toast";
+import LoadingOverlay from "../../Components/LoadingOverlay/LoadingOverlay.jsx";
 
 /* ---------- Helpers ---------- */
 const getUserToken = () => localStorage.getItem("userToken");
@@ -202,6 +203,7 @@ if (Array.isArray(ticket.ticketNumber)) {
   /* ---------- Render ---------- */
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
+      <LoadingOverlay visible={loading}/>
       <Navbar />
 
       {/* Header */}
@@ -212,7 +214,7 @@ if (Array.isArray(ticket.ticketNumber)) {
             className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-blue-600/90 to-purple-600/90 text-white font-semibold shadow-lg hover:shadow-blue-500/25 hover:scale-105 transition-all duration-200 border border-blue-500/30"
           >
             <Home className="w-4 h-4" />
-            <span className="hidden sm:inline">Back to Dashboard</span>
+            <span className="hidden sm:inline">Back</span>
           </Link>
         </div>
 

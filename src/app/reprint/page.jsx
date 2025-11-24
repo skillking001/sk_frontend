@@ -9,6 +9,9 @@ import toast from "react-hot-toast";
 import jsPDF from "jspdf";
 import JsBarcode from "jsbarcode";
 
+//loading overlay effect
+import LoadingOverlay from '../../Components/LoadingOverlay/LoadingOverlay'
+
 const entryOptions = [10, 20, 50, 100];
 
 /* 🧠 Helper to get loginId from JWT in localStorage */
@@ -267,7 +270,9 @@ const handlePrint = (ticket) => {
   const showData = filtered.slice(startIdx, startIdx + showEntries);
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900">
+<div  className="min-h-screen bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900 w-full">
+  <LoadingOverlay visible={loading}/>
+      <div>
       <Navbar />
 
       <div className="max-w-7xl mx-auto pt-6 px-6">
@@ -404,6 +409,7 @@ const handlePrint = (ticket) => {
         </div>
       </div>
     </div>
+</div>
   );
 };
 

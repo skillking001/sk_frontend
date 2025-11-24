@@ -3,6 +3,7 @@ import React, { useState, useEffect } from "react";
 import { Calendar, Clock, Grid3x3 } from "lucide-react";
 import Navbar from "../../Components/Navbar/Navbar";
 import axios from "axios";
+import LoadingOverlay from "../../Components/LoadingOverlay/LoadingOverlay";
 
 const columnRanges = [
   { label: "10-19", start: 10, end: 19 },
@@ -140,6 +141,7 @@ const Page = () => {
 
   return (
     <div className="min-h-screen bg-white">
+      <LoadingOverlay visible={loading}/>
       <div className="max-w-7xl mx-auto p-6 pt-8">
         {/* Header */}
         <div className="text-center mb-8">
@@ -187,7 +189,6 @@ const Page = () => {
                 ))}
               </div>
             </div>
-
           </div>
         </div>
 
