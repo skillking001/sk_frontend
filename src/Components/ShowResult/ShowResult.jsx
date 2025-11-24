@@ -75,7 +75,7 @@ function SlotNumber({ value, delay = 0 }) {
       initial={{ y: -30, opacity: 0.3 }}
       animate={{ y: 0, opacity: 1, scale: rolling ? 1.05 : 1 }}
       transition={{ type: "spring", stiffness: 400, damping: 35 }}
-      className="font-mono font-bold text-white text-[clamp(0.7rem,2vw,1rem)] select-none"
+      className="font-mono font-bold text-white text-[clamp(1.5rem,2vw,1rem)] select-none"
       style={{
         textShadow: isEmpty ? "none" : "0 1px 3px #0008",
         opacity: isEmpty ? 0.3 : 1,

@@ -1686,35 +1686,35 @@ return (
         {/* RIGHT: Game Status */}
         <div className="w-auto">
           <div className="grid grid-cols-4 gap-2 min-w-[400px]">
-            <div className="p-2 bg-slate-800/70 rounded-sm border border-slate-700/50 shadow-md flex flex-col">
-              <span className="text-[10px] text-slate-400 font-medium">
+            <div className="p-2 bg-slate-800/70 text-center rounded-sm border border-slate-700/50 shadow-md flex flex-col">
+              <span className="text-[8px] text-slate-400 font-medium">
                 Game ID
               </span>
-              <span className="text-xs font-mono font-bold text-purple-400 truncate">
+              <span className="text-lg font-mono font-bold text-purple-400 truncate">
                 {gameIdBox}
               </span>
             </div>
-            <div className="p-2 bg-slate-800/70 rounded-sm border border-slate-700/50 shadow-md flex flex-col">
-              <span className="text-[10px] text-slate-400 font-medium">
+            <div className="p-2 bg-slate-800/70 text-center rounded-sm border border-slate-700/50 shadow-md flex flex-col">
+              <span className="text-[8px] text-slate-400 font-medium">
                 Last Points
               </span>
-              <span className="text-xs font-mono font-bold text-pink-400">
+              <span className="text-lg font-mono font-bold text-pink-400">
                 {lastPoints}
               </span>
             </div>
-            <div className="p-2 bg-slate-800/70 rounded-sm border border-slate-700/50 shadow-md flex flex-col">
-              <span className="text-[10px] text-slate-400 font-medium">
+            <div className="p-2 bg-slate-800/70 text-center rounded-sm border border-slate-700/50 shadow-md flex flex-col">
+              <span className="text-[8px] text-slate-400 font-medium">
                 Last Ticket
               </span>
-              <span className="text-xs font-mono font-bold text-cyan-400 truncate">
+              <span className="text-lg font-mono font-bold text-cyan-400 truncate">
                 {lastTicket}
               </span>
             </div>
-            <div className="p-2 bg-slate-800/70 rounded-sm border border-slate-700/50 shadow-md flex flex-col">
-              <span className="text-[10px] text-slate-400 font-medium">
+            <div className="p-2 bg-slate-800/70 rounded-sm border text-center border-slate-700/50 shadow-md flex flex-col">
+              <span className="text-[8px] text-slate-400 font-medium">
                 Balance Limit
               </span>
-              <span className="text-xs font-mono font-bold text-emerald-400">
+              <span className="text-lg font-mono font-bold text-emerald-400">
                 {balance}
               </span>
             </div>
