@@ -8,15 +8,16 @@ import { Home } from "lucide-react";
 import { useRouter } from "next/navigation";
 import LoadingOverlay from "../../Components/LoadingOverlay/LoadingOverlay";
 
-// Tabs
+// Tabs - Added Pending Claims
 const TABS = [
   { label: "Points Summary", key: "points" },
   { label: "Net To Pay Summary", key: "net" },
   { label: "Points Allocation", key: "allocation" },
   { label: "Claimed Tickets", key: "claimed" },
+  { label: "Pending Claims", key: "pending" }, // NEW TAB
 ];
 
-// Table configs
+// Table configs - Added pending claims config
 const TABLE_CONFIG = {
   points: {
     columns: [
@@ -59,6 +60,18 @@ const TABLE_CONFIG = {
       { label: "Winning Tickets", key: "winningTickets" },
     ],
   },
+  pending: { // NEW CONFIG
+    columns: [
+      { label: "Sr. No.", key: "sr" },
+      { label: "Ticket ID", key: "ticketId" },
+      { label: "Draw Date", key: "drawDate" },
+      { label: "Draw Times", key: "drawTimes" },
+      { label: "Winning Numbers", key: "winningNumbers" },
+      { label: "Total Quantity", key: "totalQuantity" },
+      { label: "Winning Amount", key: "winningAmount" },
+      { label: "Status", key: "status" },
+    ],
+  },
 };
 
 // extract loginId from token
@@ -85,9 +98,10 @@ const ShopAccounts = () => {
   const [fromDate, setFromDate] = useState(today);
   const [toDate, setToDate] = useState(today);
   const [pointsSummaryData, setPointsSummaryData] = useState([]);
-  const [netToPayData, setNetToPayData] = useState([]); // NEW STATE
+  const [netToPayData, setNetToPayData] = useState([]);
   const [allocationData, setAllocationData] = useState([]);
   const [claimedTicketsData, setClaimedTicketsData] = useState([]);
+  const [pendingClaimsData, setPendingClaimsData] = useState([]); // NEW STATE
   const [loginId, setLoginId] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -104,7 +118,7 @@ const ShopAccounts = () => {
     }
   }, [router]);
 
-  // fetch net to pay summary (NEW)
+  // fetch net to pay summary
   const fetchNetToPaySummary = async () => {
     if (!loginId) return;
     setLoading(true);
@@ -248,6 +262,51 @@ const ShopAccounts = () => {
     setLoading(false);
   };
 
+  // NEW: fetch pending claims
+  const fetchPendingClaims = async () => {
+    if (!loginId) return;
+
+    setLoading(true);
+    setError("");
+
+    try {
+      const res = await axios.post(
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/pending-claims`,
+        {
+          loginId,
+        }
+      );
+
+      const mapped = res.data.pendingClaimableTickets?.map((item, idx) => ({
+        sr: idx + 1,
+        ticketId: item.ticketId,
+        drawDate: item.drawDate || "N/A",
+        drawTimes: Array.isArray(item.drawTimes) 
+          ? item.drawTimes.join(", ") 
+          : "N/A",
+        winningNumbers: Array.isArray(item.matches)
+          ? item.matches.map(match => `${match.number} (x${match.quantity})`).join(", ")
+          : "No winning numbers",
+        totalQuantity: Array.isArray(item.matches)
+          ? item.matches.reduce((sum, match) => sum + match.quantity, 0)
+          : 0,
+        winningAmount: `₹${item.totalWinningAmount?.toLocaleString() || "0"}`,
+        status: (
+          <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 border border-yellow-300">
+            Pending Claim
+          </span>
+        ),
+      })) || [];
+
+      setPendingClaimsData(mapped);
+    } catch (err) {
+      setError(err.response?.data?.message || "Something went wrong");
+      setPendingClaimsData([]);
+    }
+
+    setLoading(false);
+  };
+
   const handleTabChange = (tabKey) => {
     setActiveTab(tabKey);
     setError("");
@@ -257,6 +316,7 @@ const ShopAccounts = () => {
     setNetToPayData([]);
     setAllocationData([]);
     setClaimedTicketsData([]);
+    setPendingClaimsData([]);
   };
 
   const handleViewClick = () => {
@@ -273,6 +333,9 @@ const ShopAccounts = () => {
       case "claimed":
         fetchClaimedTickets();
         break;
+      case "pending": // NEW CASE
+        fetchPendingClaims();
+        break;
       default:
         break;
     }
@@ -288,6 +351,8 @@ const ShopAccounts = () => {
         return allocationData;
       case "claimed":
         return claimedTicketsData;
+      case "pending": // NEW CASE
+        return pendingClaimsData;
       default:
         return [];
     }
@@ -312,9 +377,9 @@ const ShopAccounts = () => {
         </div>
       </div>
 
-      <div className="max-w-6xl mx-auto bg-slate-900 rounded-2xl shadow-2xl p-8 mb-12 border border-slate-700">
+      <div className="max-w-7xl mx-auto bg-slate-900 rounded-2xl shadow-2xl p-8 mb-12 border border-slate-700">
         {/* Tabs */}
-        <div className="flex gap-3 mb-8">
+        <div className="flex gap-3 mb-8 flex-wrap">
           {TABS.map((tab) => (
             <button
               key={tab.key}
@@ -363,6 +428,14 @@ const ShopAccounts = () => {
           </div>
         </div>
 
+        {/* Note for Pending Claims */}
+        {activeTab === "pending" && (
+          <div className="mb-6 p-4 bg-blue-900/20 rounded-lg border border-blue-800 text-blue-300 text-sm">
+            💡 <strong>Note:</strong> Pending Claims show tickets that have winning numbers but haven't been claimed yet. 
+            These are automatically detected based on draw results.
+          </div>
+        )}
+
         {/* Error */}
         {error && (
           <div className="text-red-400 font-bold mb-6 p-4 bg-red-900/20 rounded-lg border border-red-800 text-base">
@@ -410,6 +483,31 @@ const ShopAccounts = () => {
             </tbody>
           </table>
         </div>
+
+        {/* Summary for Pending Claims */}
+        {activeTab === "pending" && hasData && (
+          <div className="mt-6 p-4 bg-slate-800/50 rounded-xl border border-slate-700">
+            <div className="flex flex-wrap gap-6 text-slate-300">
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 bg-yellow-500 rounded-full"></div>
+                <span className="text-sm">
+                  Total Pending Tickets: <strong className="text-white">{pendingClaimsData.length}</strong>
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                <span className="text-sm">
+                  Total Winning Amount: <strong className="text-white">
+                    ₹{pendingClaimsData.reduce((sum, item) => {
+                      const amount = item.winningAmount.replace('₹', '').replace(/,/g, '');
+                      return sum + parseInt(amount || 0);
+                    }, 0).toLocaleString()}
+                  </strong>
+                </span>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

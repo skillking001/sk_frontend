@@ -38,21 +38,34 @@ export default function Page() {
   const [showEntries, setShowEntries] = useState(10);
   const [search, setSearch] = useState("");
   const [current, setCurrent] = useState(1);
+  const [loginId, setLoginId] = useState(null);
 
-  /* ---------- Load Active Tickets ---------- */
-  useEffect(() => {
-    if (!getUserToken()) {
-      window.location.href = "/";
-      return;
-    }
+
+useEffect(() => {
+  const token = getUserToken();
+
+  if (!token) {
+    window.location.href = "/";
+    return;
+  }
+
+  const id = getLoginIdFromToken();
+  if (id) setLoginId(id);
+}, []);
+
+
+useEffect(() => {
+  if (loginId) {
     fetchTickets();
-  }, []);
+  }
+}, [loginId]);
+
 
   const fetchTickets = useCallback(async () => {
     try {
       setLoading(true);
-      const loginId = getLoginIdFromToken();
-      if (!loginId) return;
+    if (!loginId) return;
+
 
       const { data } = await axios.post(
         `${process.env.NEXT_PUBLIC_API_BASE_URL}/show-tickets`,
@@ -105,7 +118,7 @@ if (Array.isArray(ticket.ticketNumber)) {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [loginId]);
 
   /* ---------- Load Cancelled Tickets ---------- */
   const fetchCancelledTickets = useCallback(async () => {
