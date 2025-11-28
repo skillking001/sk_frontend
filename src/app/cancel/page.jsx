@@ -27,7 +27,6 @@ function getLoginIdFromToken() {
 }
 
 
-
 /* ---------- Page Component ---------- */
 export default function Page() {
   const [tickets, setTickets] = useState([]);

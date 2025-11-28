@@ -118,6 +118,13 @@ const ShopAccounts = () => {
     }
   }, [router]);
 
+useEffect(() => {
+  if (activeTab === "pending" && loginId) {
+    fetchPendingClaims();
+  }
+}, [activeTab, loginId]);
+
+
   // fetch net to pay summary
   const fetchNetToPaySummary = async () => {
     if (!loginId) return;
@@ -333,9 +340,6 @@ const ShopAccounts = () => {
       case "claimed":
         fetchClaimedTickets();
         break;
-      case "pending": // NEW CASE
-        fetchPendingClaims();
-        break;
       default:
         break;
     }
@@ -396,37 +400,41 @@ const ShopAccounts = () => {
         </div>
 
         {/* Filters */}
-        <div className="flex flex-wrap gap-6 items-end mb-8 p-6 bg-slate-800/50 rounded-xl border border-slate-700">
-          <div className="flex-1 min-w-[200px]">
-            <label className="text-slate-300 text-sm font-medium mb-2 block">From Date</label>
-            <input
-              type="date"
-              className="w-full bg-slate-800 border border-slate-600 rounded-lg px-4 py-3 text-slate-200 text-base focus:outline-none focus:ring-2 focus:ring-purple-600 focus:border-transparent"
-              value={fromDate}
-              onChange={(e) => setFromDate(e.target.value)}
-            />
-          </div>
+{/* Filters — HIDDEN for Pending Claims */}
+{activeTab !== "pending" && (
+  <div className="flex flex-wrap gap-6 items-end mb-8 p-6 bg-slate-800/50 rounded-xl border border-slate-700">
+    <div className="flex-1 min-w-[200px]">
+      <label className="text-slate-300 text-sm font-medium mb-2 block">From Date</label>
+      <input
+        type="date"
+        className="w-full bg-slate-800 border border-slate-600 rounded-lg px-4 py-3 text-slate-200 text-base"
+        value={fromDate}
+        onChange={(e) => setFromDate(e.target.value)}
+      />
+    </div>
 
-          <div className="flex-1 min-w-[200px]">
-            <label className="text-slate-300 text-sm font-medium mb-2 block">To Date</label>
-            <input
-              type="date"
-              className="w-full bg-slate-800 border border-slate-600 rounded-lg px-4 py-3 text-slate-200 text-base focus:outline-none focus:ring-2 focus:ring-purple-600 focus:border-transparent"
-              value={toDate}
-              onChange={(e) => setToDate(e.target.value)}
-            />
-          </div>
+    <div className="flex-1 min-w-[200px]">
+      <label className="text-slate-300 text-sm font-medium mb-2 block">To Date</label>
+      <input
+        type="date"
+        className="w-full bg-slate-800 border border-slate-600 rounded-lg px-4 py-3 text-slate-200 text-base"
+        value={toDate}
+        onChange={(e) => setToDate(e.target.value)}
+      />
+    </div>
 
-          <div className="flex gap-3">
-            <button
-              onClick={handleViewClick}
-              disabled={loading}
-              className="bg-gradient-to-r from-purple-600 to-pink-600 text-white px-8 py-3 rounded-lg shadow-lg font-bold text-base hover:from-purple-700 hover:to-pink-700 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed min-w-[120px]"
-            >
-              {loading ? "Loading..." : "View"}
-            </button>
-          </div>
-        </div>
+    <div className="flex gap-3">
+      <button
+        onClick={handleViewClick}
+        disabled={loading}
+        className="bg-gradient-to-r from-purple-600 to-pink-600 text-white px-8 py-3 rounded-lg shadow-lg font-bold text-base"
+      >
+        {loading ? "Loading..." : "View"}
+      </button>
+    </div>
+  </div>
+)}
+
 
         {/* Note for Pending Claims */}
         {activeTab === "pending" && (
