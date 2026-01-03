@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react";
 import { RefreshCcw, List, XCircle, KeyRound, LogOut, UserCircle, Box } from "lucide-react";
 import axios from "axios";
 
-const Navbar = () => {
+const Details = () => {
   const [adminId, setAdminId] = useState("-");
 
   // Fetch the adminId from the userToken in localStorage
@@ -22,12 +22,10 @@ const Navbar = () => {
   
 
   const actions = [
-    { name: "Account", href: "/account", icon: <UserCircle className="w-5 h-5" /> },
-    { name: "Reprint", href: "/reprint", icon: <RefreshCcw className="w-5 h-5" /> },
-    { name: "Result", href: "/result", icon: <List className="w-5 h-5" /> },
-    { name: "Cancel", href: "/cancel", icon: <XCircle className="w-5 h-5" /> },
-    { name: "Password", href: "/password", icon: <KeyRound className="w-5 h-5" /> },
-    { name: "3D", href: "/three-D", icon: <Box className="w-5 h-5" /> },
+    { name: "Account", href: "/3Daccount", icon: <UserCircle className="w-5 h-5" /> },
+    { name: "Reprint", href: "/3Dreprint", icon: <RefreshCcw className="w-5 h-5" /> },
+    { name: "Cancel", href: "/3Dcancel", icon: <XCircle className="w-5 h-5" /> },
+    { name: "2d", href: "/dashboard", icon: <Box className="w-5 h-5" /> },
   ];
 
   const handleLogout = async () => {
@@ -81,4 +79,4 @@ const Navbar = () => {
   );
 };
 
-export default Navbar;
+export default Details;

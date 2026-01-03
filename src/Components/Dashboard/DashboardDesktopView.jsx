@@ -1226,7 +1226,8 @@ const handleClaimTicket = async () => {
     )}:${pad(now.getSeconds())}`;
   }
 
-  const generatePrintReceipt = (data, ticketId) => {
+const generatePrintReceipt = (data, ticketId) => {
+  return new Promise((resolve) => {
     const lineHeight = 4;
     const ticketArray = (data.ticketNumber || "").split(", ").filter(Boolean);
     const ticketRows = Math.ceil(ticketArray.length / 3);
@@ -1296,41 +1297,85 @@ const handleClaimTicket = async () => {
     pdf.text(`Total Amount : ${data.totalPoints}`, 5, yPos);
     yPos += 8;
 
-// ✅ Keep only the numeric ticketId encoded in the barcode
-const barcodeValue = String(ticketId);
+    // ✅ Keep only the numeric ticketId encoded in the barcode
+    const barcodeValue = String(ticketId);
 
-// Generate the barcode image
-const canvas = document.createElement("canvas");
-JsBarcode(canvas, barcodeValue, {
-  format: "CODE128",
-  width: 2,
-  height: 50,
-  displayValue: false,  // hide numeric text inside barcode
-  margin: 5,
-});
+    // Generate the barcode image
+    const canvas = document.createElement("canvas");
+    JsBarcode(canvas, barcodeValue, {
+      format: "CODE128",
+      width: 2,
+      height: 50,
+      displayValue: false,
+      margin: 5,
+    });
 
-const barcodeImage = canvas.toDataURL("image/png");
-pdf.addImage(barcodeImage, "PNG", 10, yPos, 60, 20);
+    const barcodeImage = canvas.toDataURL("image/png");
+    pdf.addImage(barcodeImage, "PNG", 10, yPos, 60, 20);
 
-// Add text "SK<ticketId>" below barcode (printed only)
-pdf.setFontSize(12);
-pdf.text(`SK${ticketId}`, 40, yPos + 28, { align: "center" });
+    // Add text "SK<ticketId>" below barcode (printed only)
+    pdf.setFontSize(12);
+    pdf.text(`SK${ticketId}`, 40, yPos + 28, { align: "center" });
 
-
+    // ✅ Print using hidden iframe
     pdf.autoPrint();
     const pdfBlob = pdf.output("blob");
     const pdfUrl = URL.createObjectURL(pdfBlob);
-    const printWindow = window.open(pdfUrl);
-    if (printWindow) {
-      printWindow.onload = function () {
-        printWindow.print();
-      };
-    } else {
-      toast.error(
-        "Unable to open print window. Please disable popup blocker and try again."
-      );
-    }
-  };
+    
+    // Create hidden iframe for printing
+    const printFrame = document.createElement("iframe");
+    printFrame.style.position = "fixed";
+    printFrame.style.right = "0";
+    printFrame.style.bottom = "0";
+    printFrame.style.width = "0";
+    printFrame.style.height = "0";
+    printFrame.style.border = "none";
+    
+    document.body.appendChild(printFrame);
+    
+    // Track if print dialog was opened
+    let printDialogOpened = false;
+    
+    printFrame.onload = function() {
+      try {
+        printFrame.contentWindow.focus();
+        printFrame.contentWindow.print();
+        printDialogOpened = true;
+        
+        // ✅ Wait longer before cleanup - give user time to print/cancel
+        setTimeout(() => {
+          if (document.body.contains(printFrame)) {
+            document.body.removeChild(printFrame);
+          }
+          URL.revokeObjectURL(pdfUrl);
+          resolve();
+        }, 5000); // Wait 5 seconds instead of 1
+        
+      } catch (err) {
+        console.error("Print error:", err);
+        if (document.body.contains(printFrame)) {
+          document.body.removeChild(printFrame);
+        }
+        URL.revokeObjectURL(pdfUrl);
+        toast.error("Unable to print. Please try again.");
+        resolve();
+      }
+    };
+    
+    // Fallback cleanup if iframe fails to load
+    setTimeout(() => {
+      if (!printDialogOpened && document.body.contains(printFrame)) {
+        document.body.removeChild(printFrame);
+        URL.revokeObjectURL(pdfUrl);
+        resolve();
+      }
+    }, 10000); // 10 second absolute timeout
+    
+    printFrame.src = pdfUrl;
+  });
+};
+
+
 function handleCheckboxClick(num) {
   setSelectedNumbers((prev) => {
     let newSel = [...prev];
@@ -1476,7 +1521,7 @@ const handlePrint = async () => {
       toast.success(`Tickets saved successfully! Ticket ID: ${ticketId}`);
 
       // 🖨️ Generate receipt and print
-      generatePrintReceipt(
+      await generatePrintReceipt(
         {
           gameTime,
           drawTime:
@@ -1492,7 +1537,7 @@ const handlePrint = async () => {
       // 🧮 Refresh updated balance after successful print
       await fetchBalanceLimit();
 
-      // ✅ STEP: COMPLETE RESET AFTER SUCCESSFUL PRINT
+      // ✅ COMPLETE RESET AFTER SUCCESSFUL PRINT
       setSelected(Array(10).fill(null).map(() => Array(3).fill(false)));
       setQuantities(Array(10).fill(0));
       setPoints(Array(10).fill(0));

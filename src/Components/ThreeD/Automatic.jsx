@@ -20,7 +20,6 @@ const Automatic = () => {
   const allCheckboxNames = [
     "ALL",
     ...Object.keys(checkboxLabels),
-    "No Repeat",
   ];
 
   // ------------------------- STATES ----------------------------
@@ -91,50 +90,57 @@ const aggregateTicketNumbers = (entries) => {
     }
     const updated = { ...checks, [label]: !checks[label] };
     const allChecked = Object.keys(checkboxLabels)
-      .concat(["No Repeat"])
       .every((l) => updated[l]);
     updated["ALL"] = allChecked;
     setChecks(updated);
   };
 
+  const autoAddNumber = (val) => {
+  const selectedSpots = Object.keys(checkboxLabels).filter((l) => checks[l]);
+
+  if (selectedSpots.length === 0) return;
+
+  let newEntries = [...entries];
+  let updatedSpots = { ...spotData };
+
+  selectedSpots.forEach((label) => {
+    const spotKey = checkboxLabels[label];
+    const entry = {
+      id: Date.now() + Math.random(),
+      number: val,
+      type: label,
+      spot: spotKey,
+      rate: selectedRate,
+      quantity: 1,
+    };
+    newEntries.push(entry);
+    updatedSpots[spotKey].qty += 1;
+    updatedSpots[spotKey].rs += selectedRate;
+  });
+
+  setEntries(newEntries);
+  setSpotData(updatedSpots);
+  setNumberInput(""); // clear box
+  localStorage.setItem("tickets", JSON.stringify(newEntries));
+};
+
+
   // ---------------------- ADD NUMBER LOGIC ----------------------
   const handleNumberChange = (e) => {
     const val = e.target.value;
     if (/^\d{0,3}$/.test(val)) setNumberInput(val);
+
+    setNumberInput(val);
+
+    if(val.length === 3) {
+      autoAddNumber(val);
+    }
+
   };
 
-  const handleAddNumber = (e) => {
-    if (e.key !== "Enter") return;
-    if (numberInput.length !== 3) return;
+  // this logic is not seems to work
+const handleAddNumber = () => {}; 
 
-    const selectedSpots = Object.keys(checkboxLabels).filter(
-      (l) => checks[l]
-    );
-    if (selectedSpots.length === 0) return;
-
-    let newEntries = [...entries];
-    let updatedSpots = { ...spotData };
-
-    selectedSpots.forEach((label) => {
-      const spotKey = checkboxLabels[label];
-      const entry = {
-        id: Date.now() + Math.random(),
-        number: numberInput,
-        type: label,
-        spot: spotKey,
-        rate: selectedRate,
-        quantity: 1,
-      };
-      newEntries.push(entry);
-      updatedSpots[spotKey].qty += 1;
-      updatedSpots[spotKey].rs += selectedRate;
-    });
-
-    setEntries(newEntries);
-    setSpotData(updatedSpots);
-    setNumberInput("");
-    localStorage.setItem("tickets", JSON.stringify(newEntries));
-  };
 
   const handleBuy = async () => {
   try {
@@ -257,6 +263,19 @@ const aggregateTicketNumbers = (entries) => {
             </div>
           </div>
 
+                    {/* NUMBER INPUT - Compact */}
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-semibold text-gray-300 whitespace-nowrap">ADD NUMBER:</span>
+            <input
+              value={numberInput}
+              onChange={handleNumberChange}
+              onKeyDown={handleAddNumber}
+              className="w-20 bg-gray-700 border border-gray-600 text-white font-bold px-2 py-1 rounded focus:border-blue-400 focus:ring-1 focus:ring-blue-400 transition-all text-center text-sm tracking-widest"
+              placeholder="000"
+              maxLength={3}
+            />
+          </div>
+
           {/* RATES - Compact */}
           <div className="flex items-center gap-2">
             <span className="text-xs font-semibold text-gray-300 whitespace-nowrap">RATE:</span>
@@ -277,18 +296,7 @@ const aggregateTicketNumbers = (entries) => {
             </div>
           </div>
 
-          {/* NUMBER INPUT - Compact */}
-          <div className="flex items-center gap-2">
-            <span className="text-xs font-semibold text-gray-300 whitespace-nowrap">ADD NUMBER:</span>
-            <input
-              value={numberInput}
-              onChange={handleNumberChange}
-              onKeyDown={handleAddNumber}
-              className="w-20 bg-gray-700 border border-gray-600 text-white font-bold px-2 py-1 rounded focus:border-blue-400 focus:ring-1 focus:ring-blue-400 transition-all text-center text-sm tracking-widest"
-              placeholder="000"
-              maxLength={3}
-            />
-          </div>
+
 
         </div>
       </div>
@@ -414,7 +422,7 @@ const aggregateTicketNumbers = (entries) => {
           RESET (F2)
         </button>
 <button
-  className="flex-1 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white font-semibold px-3 py-2 rounded text-sm transition-all flex items-center justify-center gap-1"
+  className="flex-1 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white border-b-4 border-green-900/50 font-semibold px-3 py-2 rounded text-sm transition-all flex items-center justify-center gap-1"
   onClick={handleBuy}
   disabled={isBuying}
   style={{ opacity: isBuying ? 0.6 : 1 }}

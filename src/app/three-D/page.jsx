@@ -5,6 +5,7 @@ import Manual from "../../Components/ThreeD/Manual";
 import Automatic from "../../Components/ThreeD/Automatic";
 import HowToPlay from "../../Components/ThreeD/HowToPlay";
 import { useRouter } from "next/navigation";
+import Details from '../../Components/ThreeD/Details'
 
 const Page = () => {
   const router = useRouter();
@@ -130,7 +131,7 @@ const Page = () => {
     <div className="relative min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 text-white">
 
 {/* 🔥 WINNING NUMBERS STRIP (FULL WIDTH) */}
-<div className="w-full px-4 py-3 mt-3 flex justify-center">
+<div className="w-full px-4 py-3 flex justify-center">
   <div className="
       w-full flex justify-between gap-3 bg-black/40 border-2 border-yellow-500 
       rounded-xl px-4 py-3 overflow-x-auto
@@ -216,6 +217,8 @@ const Page = () => {
       {/* MODAL */}
       <HowToPlay isOpen={showHowToPlay} onClose={() => setShowHowToPlay(false)} />
 
+
+      <Details/>
     </div>
   );
 };

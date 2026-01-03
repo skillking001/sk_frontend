@@ -12,15 +12,80 @@ export default function Manual() {
   const [quantity, setQuantity] = useState("");
   const [rate, setRate] = useState("10");
 
-  const handleSelectionChangeTop = (e) => setSelection(e.target.value);
+  const handleSelectionChangeTop = (e) => {
+    const value = e.target.value;
+    setSelection(value);
+    
+    // If the selection is not "all", apply it to all grid cells
+    if (value !== "all") {
+      setSelections(prev =>
+        prev.map(col => col.map(() => value))
+      );
+    }
+  };
+
   const handlePickChange = (e) => setPick(e.target.value);
 
   const handleQuantityChange = (e) => {
     const raw = e.target.value.replace(/\D/g, "");
-    setQuantity(raw.slice(0, 4));
+    setQuantity(raw.slice(0, 3)); // Allow only 3 digits for lucky pick
   };
 
   const handleRateChange = (value) => setRate(value);
+
+  // ------------------------------ LUCKY PICK FUNCTIONALITY -------------------------------
+  const applyLuckyPick = () => {
+    if (!quantity || quantity.length !== 3) {
+      alert("Please enter a valid 3-digit number for Lucky Pick");
+      return;
+    }
+
+    // Convert quantity string to digits array for display building
+    const digits = quantity.split("");
+
+    // Build display number with 'x' for disabled positions according to pick type
+    const displayArr = [0, 1, 2].map((i) =>
+      isDisabled(pick, i) ? "x" : digits[i] || ""
+    );
+    const display = displayArr.join("");
+
+    const code = typeToCode[pick] || "STR";
+
+    // For compatibility with existing stored format:
+    // stored.ticket.rate is totalPoints for that ticket (quantity * perUnitRate)
+    const perUnitRate = parseInt(rate, 10) || 0;
+    const qtyNumber = Number(quantity);
+
+    const newTicket = {
+      number: display,
+      type: code,
+      quantity: qtyNumber, // for lucky pick this is the numeric 3-digit value
+      rate: qtyNumber * perUnitRate, // total points for this ticket
+    };
+
+    // merge into existing storage (combine same number+type)
+    const existing = loadLocal();
+    const key = `${newTicket.number}|${newTicket.type}`;
+    let merged = [...existing];
+    let found = false;
+    for (let i = 0; i < merged.length; i++) {
+      const t = merged[i];
+      const k = `${t.number}|${t.type}`;
+      if (k === key) {
+        // add quantities and add total-points (rate) to keep same stored format
+        merged[i] = {
+          ...t,
+          quantity: Number(t.quantity || 0) + newTicket.quantity,
+          rate: Number(t.rate || 0) + newTicket.rate,
+        };
+        found = true;
+        break;
+      }
+    }
+    if (!found) merged.push(newTicket);
+
+    saveLocal(merged);
+  };
 
   // ------------------------------ LOCAL STORAGE SETUP -------------------------------
   const LOCAL_KEY = "threeD_manual_tickets";
@@ -32,9 +97,14 @@ export default function Manual() {
       return [];
     }
   };
+
+  // keep an in-memory copy so UI re-renders when storage changes
+  const [localTickets, setLocalTickets] = useState(() => loadLocal());
+
   const saveLocal = (data) => {
     try {
       localStorage.setItem(LOCAL_KEY, JSON.stringify(data));
+      setLocalTickets(data); // update state so React re-renders grand total etc.
     } catch (err) {
       console.error("Failed saving local:", err);
     }
@@ -54,6 +124,11 @@ export default function Manual() {
     { value: "backPair", label: "Back Pair" },
     { value: "splitPair", label: "Split Pair" },
     { value: "anyPair", label: "Any Pair" },
+  ];
+
+  const topSelectionOptions = [
+    { value: "all", label: "All Selection" },
+    ...selectionOptions
   ];
 
   const [selections, setSelections] = useState(() =>
@@ -133,33 +208,48 @@ export default function Manual() {
   };
 
   // direction: "left" | "right" | "up" | "down"
-const focusAt = (col, row, inputIdx) => {
-  const ref = inputRefs.current?.[col]?.[row]?.[inputIdx];
-  if (ref && typeof ref.focus === "function") ref.focus();
-};
+  const focusAt = (col, row, inputIdx) => {
+    const ref = inputRefs.current?.[col]?.[row]?.[inputIdx];
+    if (ref && typeof ref.focus === "function") ref.focus();
+  };
 
-// find the next enabled input cell in the given direction, skipping disabled inputs
-const findNextEnabled = (startCol, startRow, startInputIdx, direction) => {
-  let col = startCol;
-  let row = startRow;
-  let inputIdx = startInputIdx;
+  // find the next enabled input cell in the given direction, skipping disabled inputs
+  const findNextEnabled = (startCol, startRow, startInputIdx, direction) => {
+    let col = startCol;
+    let row = startRow;
+    let inputIdx = startInputIdx;
 
-  const step = () => {
-    if (direction === "right") {
-      inputIdx++;
-      if (inputIdx >= 3) {
-        inputIdx = 0;
+    const step = () => {
+      if (direction === "right") {
+        inputIdx++;
+        if (inputIdx >= 3) {
+          inputIdx = 0;
+          row++;
+          if (row >= NUM_ROWS) {
+            row = 0;
+            col++;
+            if (col >= NUM_COLS) return null;
+          }
+        }
+      } else if (direction === "left") {
+        inputIdx--;
+        if (inputIdx < 0) {
+          inputIdx = 2;
+          row--;
+          if (row < 0) {
+            row = NUM_ROWS - 1;
+            col--;
+            if (col < 0) return null;
+          }
+        }
+      } else if (direction === "down") {
         row++;
         if (row >= NUM_ROWS) {
           row = 0;
           col++;
           if (col >= NUM_COLS) return null;
         }
-      }
-    } else if (direction === "left") {
-      inputIdx--;
-      if (inputIdx < 0) {
-        inputIdx = 2;
+      } else if (direction === "up") {
         row--;
         if (row < 0) {
           row = NUM_ROWS - 1;
@@ -167,90 +257,73 @@ const findNextEnabled = (startCol, startRow, startInputIdx, direction) => {
           if (col < 0) return null;
         }
       }
-    } else if (direction === "down") {
-      row++;
-      if (row >= NUM_ROWS) {
-        row = 0;
-        col++;
-        if (col >= NUM_COLS) return null;
-      }
-    } else if (direction === "up") {
-      row--;
-      if (row < 0) {
-        row = NUM_ROWS - 1;
-        col--;
-        if (col < 0) return null;
-      }
-    }
-    return { col, row, inputIdx };
-  };
-
-  // attempt at most NUM_COLS * NUM_ROWS * 3 steps to avoid infinite loops
-  const maxSteps = NUM_COLS * NUM_ROWS * 3;
-  for (let i = 0; i < maxSteps; i++) {
-    const next = step();
-    if (!next) return null;
-    const { col: c, row: r, inputIdx: idx } = next;
-    // check bounds
-    if (!inputRefs.current?.[c] || !inputRefs.current[c][r]) continue;
-    // check disabled by using your isDisabled(selection, inputIdx)
-    const type = selections?.[c]?.[r] ?? "straight";
-    if (isDisabled(type, idx)) continue;
-    // ensure ref exists
-    const ref = inputRefs.current[c][r][idx];
-    if (ref) return { col: c, row: r, inputIdx: idx };
-  }
-  return null;
-};
-
-const handleBuyClick = async () => {
-  try {
-    const token = localStorage.getItem("userToken");
-    if (!token) {
-      alert("User not logged in!");
-      return;
-    }
-
-    const decoded = jwtDecode(token);
-    const loginId = decoded?.id || decoded?.userId || "unknown";
-
-    // Load final aggregated tickets
-    const tickets = loadLocal();
-
-    if (tickets.length === 0) {
-      alert("No tickets found to submit!");
-      return;
-    }
-
-    const totalQuantity = tickets.reduce((sum, t) => sum + t.quantity, 0);
-    const totalPoints = tickets.reduce((sum, t) => sum + t.rate, 0);
-
-    const payload = {
-      gameTime: new Date().toISOString(),
-      loginId,
-      ticketNumbers: tickets,
-      range: parseInt(rate),
-      totalQuantity,
-      totalPoints,
+      return { col, row, inputIdx };
     };
 
-    console.log("Posting:", payload);
+    // attempt at most NUM_COLS * NUM_ROWS * 3 steps to avoid infinite loops
+    const maxSteps = NUM_COLS * NUM_ROWS * 3;
+    for (let i = 0; i < maxSteps; i++) {
+      const next = step();
+      if (!next) return null;
+      const { col: c, row: r, inputIdx: idx } = next;
+      // check bounds
+      if (!inputRefs.current?.[c] || !inputRefs.current[c][r]) continue;
+      // check disabled by using your isDisabled(selection, inputIdx)
+      const type = selections?.[c]?.[r] ?? "straight";
+      if (isDisabled(type, idx)) continue;
+      // ensure ref exists
+      const ref = inputRefs.current[c][r][idx];
+      if (ref) return { col: c, row: r, inputIdx: idx };
+    }
+    return null;
+  };
 
-    const res = await axios.post(
-      `${process.env.NEXT_PUBLIC_API_BASE_URL}/save-threed`,
-      payload
-    );
+  const handleBuyClick = async () => {
+    try {
+      const token = localStorage.getItem("userToken");
+      if (!token) {
+        alert("User not logged in!");
+        return;
+      }
 
-    alert("Saved Successfully!");
-    handleReset();
+      const decoded = jwtDecode(token);
+      const loginId = decoded?.id || decoded?.userId || "unknown";
 
-  } catch (error) {
-    console.error("Buy Error:", error);
-    alert("Failed to save!");
-  }
-};
+      // Load final aggregated tickets
+      const tickets = loadLocal();
 
+      if (tickets.length === 0) {
+        alert("No tickets found to submit!");
+        return;
+      }
 
+      const totalQuantity = tickets.reduce((sum, t) => sum + t.quantity, 0);
+      const totalPoints = tickets.reduce((sum, t) => sum + t.rate, 0);
+
+      const payload = {
+        gameTime: new Date().toISOString(),
+        loginId,
+        ticketNumbers: tickets,
+        range: parseInt(rate),
+        totalQuantity,
+        totalPoints,
+      };
+
+      console.log("Posting:", payload);
+
+      const res = await axios.post(
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/save-threed`,
+        payload
+      );
+
+      alert("Saved Successfully!");
+      handleReset();
+
+    } catch (error) {
+      console.error("Buy Error:", error);
+      alert("Failed to save!");
+    }
+  };
 
   // ------------------------------ GRID TYPE CHANGE -------------------------------
   const handleSelectionChangeGrid = (colIdx, rowIdx, value) => {
@@ -336,60 +409,59 @@ const handleBuyClick = async () => {
     moveToNext(colIdx, rowIdx, inputIdx);
   };
 
-const handleKeyDown = (colIdx, rowIdx, inputIdx, e) => {
-  // Backspace logic (keep your existing behaviour)
-  if (e.key === "Backspace") {
-    e.preventDefault();
-    setNumbers((prev) => {
-      const copy = prev.map((c) => c.map((r) => r.slice()));
-      if (copy[colIdx][rowIdx][inputIdx]) {
-        // clear the current digit
-        copy[colIdx][rowIdx][inputIdx] = "";
-        // clear recorded rate for that cell
-        setRatesPerCell((prevRates) => {
-          const rcopy = prevRates.map((c) => c.slice());
-          rcopy[colIdx][rowIdx] = null;
-          return rcopy;
-        });
-        // keep focus on this input (optional) OR move to previous
-        focusAt(colIdx, rowIdx, inputIdx);
-      } else {
-        // if empty, move to previous input
-        const prev = findNextEnabled(colIdx, rowIdx, inputIdx, "left");
-        if (prev) focusAt(prev.col, prev.row, prev.inputIdx);
-      }
-      return copy;
-    });
-    return;
-  }
+  const handleKeyDown = (colIdx, rowIdx, inputIdx, e) => {
+    // Backspace logic (keep your existing behaviour)
+    if (e.key === "Backspace") {
+      e.preventDefault();
+      setNumbers((prev) => {
+        const copy = prev.map((c) => c.map((r) => r.slice()));
+        if (copy[colIdx][rowIdx][inputIdx]) {
+          // clear the current digit
+          copy[colIdx][rowIdx][inputIdx] = "";
+          // clear recorded rate for that cell
+          setRatesPerCell((prevRates) => {
+            const rcopy = prevRates.map((c) => c.slice());
+            rcopy[colIdx][rowIdx] = null;
+            return rcopy;
+          });
+          // keep focus on this input (optional) OR move to previous
+          focusAt(colIdx, rowIdx, inputIdx);
+        } else {
+          // if empty, move to previous input
+          const prev = findNextEnabled(colIdx, rowIdx, inputIdx, "left");
+          if (prev) focusAt(prev.col, prev.row, prev.inputIdx);
+        }
+        return copy;
+      });
+      return;
+    }
 
-  // Arrow navigation
-  if (e.key === "ArrowRight" || e.key === "Right") {
-    e.preventDefault();
-    const next = findNextEnabled(colIdx, rowIdx, inputIdx, "right");
-    if (next) focusAt(next.col, next.row, next.inputIdx);
-    return;
-  }
-  if (e.key === "ArrowLeft" || e.key === "Left") {
-    e.preventDefault();
-    const next = findNextEnabled(colIdx, rowIdx, inputIdx, "left");
-    if (next) focusAt(next.col, next.row, next.inputIdx);
-    return;
-  }
-  if (e.key === "ArrowDown" || e.key === "Down") {
-    e.preventDefault();
-    const next = findNextEnabled(colIdx, rowIdx, inputIdx, "down");
-    if (next) focusAt(next.col, next.row, next.inputIdx);
-    return;
-  }
-  if (e.key === "ArrowUp" || e.key === "Up") {
-    e.preventDefault();
-    const next = findNextEnabled(colIdx, rowIdx, inputIdx, "up");
-    if (next) focusAt(next.col, next.row, next.inputIdx);
-    return;
-  }
-};
-
+    // Arrow navigation
+    if (e.key === "ArrowRight" || e.key === "Right") {
+      e.preventDefault();
+      const next = findNextEnabled(colIdx, rowIdx, inputIdx, "right");
+      if (next) focusAt(next.col, next.row, next.inputIdx);
+      return;
+    }
+    if (e.key === "ArrowLeft" || e.key === "Left") {
+      e.preventDefault();
+      const next = findNextEnabled(colIdx, rowIdx, inputIdx, "left");
+      if (next) focusAt(next.col, next.row, next.inputIdx);
+      return;
+    }
+    if (e.key === "ArrowDown" || e.key === "Down") {
+      e.preventDefault();
+      const next = findNextEnabled(colIdx, rowIdx, inputIdx, "down");
+      if (next) focusAt(next.col, next.row, next.inputIdx);
+      return;
+    }
+    if (e.key === "ArrowUp" || e.key === "Up") {
+      e.preventDefault();
+      const next = findNextEnabled(colIdx, rowIdx, inputIdx, "up");
+      if (next) focusAt(next.col, next.row, next.inputIdx);
+      return;
+    }
+  };
 
   // ------------------------------ WHEN CELL BECOMES COMPLETE -------------------------------
   // Set per-cell rate at the moment cell is completed
@@ -457,13 +529,42 @@ const handleKeyDown = (colIdx, rowIdx, inputIdx, e) => {
     return Array.from(map.values());
   };
 
-  // Whenever numbers, selections or ratesPerCell change, recompute and save to localStorage
+  // Whenever numbers, selections or ratesPerCell change, recompute aggregated tickets
+  // and merge them into existing saved tickets (don't overwrite lucky picks)
   useEffect(() => {
     const aggregated = computeAggregatedTickets(numbers, selections, ratesPerCell);
-    saveLocal(aggregated);
+
+    // load existing saved tickets and merge aggregated into them
+    const existing = loadLocal();
+    const map = new Map();
+
+    // add existing into map by key
+    existing.forEach((t) => {
+      const key = `${t.number}|${t.type}`;
+      map.set(key, { ...t });
+    });
+
+    // merge aggregated (aggregated entries use same format: {number,type,quantity,rate})
+    aggregated.forEach((a) => {
+      const key = `${a.number}|${a.type}`;
+      if (!map.has(key)) {
+        map.set(key, { ...a });
+      } else {
+        const prev = map.get(key);
+        map.set(key, {
+          ...prev,
+          quantity: Number(prev.quantity || 0) + Number(a.quantity || 0),
+          rate: Number(prev.rate || 0) + Number(a.rate || 0),
+        });
+      }
+    });
+
+    const merged = Array.from(map.values());
+    saveLocal(merged);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [numbers, selections, ratesPerCell]);
 
-  // ------------------------------ RESET -------------------------------
+
   const handleReset = () => {
     setSelections(
       Array.from({ length: NUM_COLS }, () => Array(NUM_ROWS).fill("straight"))
@@ -482,41 +583,33 @@ const handleKeyDown = (colIdx, rowIdx, inputIdx, e) => {
     );
 
     localStorage.removeItem(LOCAL_KEY);
+    setLocalTickets([]);
     setBarcode("");
+    setQuantity("");
   };
 
   // ------------------------------ GRAND TOTAL -------------------------------
   const grandTotal = useMemo(() => {
-    const data = loadLocal();
-    return data.reduce((sum, x) => sum + (Number(x.rate) || 0), 0);
-  }, [numbers, selections, ratesPerCell]);
+    // localTickets is kept in state and updated via saveLocal
+    return (localTickets || []).reduce((sum, x) => sum + (Number(x.rate) || 0), 0);
+  }, [localTickets]);
+
 
   // ------------------------------ UI -------------------------------
   return (
-    <div className="w-full max-w-full mt-6 space-y-6 px-1">
+    <div className="w-full max-w-full mt-6 space-y-6 px-1 ">
       {/* -------- TOP CONTROLS ---------- */}
-      <div className="rounded-xl bg-white/6 border border-white/10 backdrop-blur-sm p-3">
+      <div className="rounded-xl bg-gradient-to-r from-gray-800 to-gray-900 border-2 border-gray-700 shadow-lg p-4">
         <div className="flex flex-wrap items-center gap-4 px-3 py-2 w-full">
-          <select
-            value={selection}
-            onChange={handleSelectionChangeTop}
-            className="min-w-[180px] bg-gray-900/30 text-white text-sm rounded-md px-4 py-2 border border-white/10"
-          >
-            <option value="all">All Selection</option>
-            <option value="odds">Odds</option>
-            <option value="evens">Evens</option>
-            <option value="high">High</option>
-            <option value="low">Low</option>
-          </select>
-
-          <div className="flex items-center gap-3 flex-1">
-            <span className="text-sm text-gray-200">LUCKY PICK</span>
+          {/* Left Selection Dropdown */}
+          <div className="flex flex-col min-w-[200px]">
+            <label className="text-sm text-gray-300 mb-1 font-medium">SELECTION</label>
             <select
-              value={pick}
-              onChange={handlePickChange}
-              className="min-w-[160px] bg-gray-900/30 text-white text-sm rounded-md px-4 py-2 border border-white/10"
+              value={selection}
+              onChange={handleSelectionChangeTop}
+              className="bg-gray-900/80 text-white text-sm rounded-lg px-4 py-3 border-2 border-gray-600 hover:border-blue-500 transition-all duration-200 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             >
-              {selectionOptions.map((opt) => (
+              {topSelectionOptions.map((opt) => (
                 <option key={opt.value} value={opt.value}>
                   {opt.label}
                 </option>
@@ -524,54 +617,89 @@ const handleKeyDown = (colIdx, rowIdx, inputIdx, e) => {
             </select>
           </div>
 
-          <input
-            value={quantity}
-            onChange={handleQuantityChange}
-            placeholder="Enter Quantity"
-            className="min-w-[140px] bg-white/5 placeholder-gray-300 text-white text-sm rounded-md px-4 py-2 border border-white/10"
-          />
-
-          <div className="flex items-center gap-3 ml-auto">
-            <span className="text-sm text-gray-200">Rates:</span>
-            {["10", "20", "50", "100", "200", "500"].map((r) => (
-              <label key={r} className="flex items-center gap-1 cursor-pointer">
+          {/* Lucky Pick Section */}
+          <div className="flex flex-col flex-1">
+            <label className="text-sm text-gray-300 mb-1 font-medium">LUCKY PICK</label>
+            <div className="flex items-center gap-3">
+              <select
+                value={pick}
+                onChange={handlePickChange}
+                className="bg-gray-900/80 text-white text-sm rounded-lg px-4 py-3 border-2 border-gray-600 hover:border-purple-500 transition-all duration-200 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 min-w-[160px]"
+              >
+                {selectionOptions.map((opt) => (
+                  <option key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </option>
+                ))}
+              </select>
+              
+              <div className="relative flex items-center">
                 <input
-                  type="radio"
-                  name="rate"
-                  value={r}
-                  checked={rate === r}
-                  onChange={() => handleRateChange(r)}
-                  className="w-4 h-4 accent-blue-500"
+                  value={quantity}
+                  onChange={handleQuantityChange}
+                  placeholder="Enter 3-digit number"
+                  className="bg-gray-900/80 placeholder-gray-400 text-white text-sm rounded-lg px-4 py-3 border-2 border-gray-600 hover:border-purple-500 transition-all duration-200 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 w-48"
+                  maxLength={3}
                 />
-                <span className={rate === r ? "text-white font-semibold" : "text-gray-300"}>
-                  {r}
-                </span>
-              </label>
-            ))}
+                <button
+                  onClick={applyLuckyPick}
+                  className="ml-2 px-4 py-3 bg-gradient-to-r from-purple-600 to-purple-700 text-white rounded-lg border-2 border-purple-500 hover:from-purple-700 hover:to-purple-800 active:border-b-0 active:mt-[2px] transition-all duration-150 font-medium shadow-md"
+                >
+                  Apply
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Rates Section */}
+          <div className="flex flex-col ml-auto">
+            <label className="text-sm text-gray-300 mb-1 font-medium">RATES</label>
+            <div className="flex items-center gap-3 bg-gray-900/80 rounded-lg p-2 border-2 border-gray-600">
+              {["10", "20", "50", "100", "200", "500"].map((r) => (
+                <label key={r} className="flex items-center gap-2 cursor-pointer group">
+                  <input
+                    type="radio"
+                    name="rate"
+                    value={r}
+                    checked={rate === r}
+                    onChange={() => handleRateChange(r)}
+                    className="w-5 h-5 accent-blue-500 cursor-pointer"
+                  />
+                  <span className={`text-sm font-medium group-hover:text-white transition-colors ${
+                    rate === r 
+                      ? "text-white bg-blue-600 px-2 py-1 rounded" 
+                      : "text-gray-400"
+                  }`}>
+                    {r}
+                  </span>
+                </label>
+              ))}
+            </div>
           </div>
         </div>
       </div>
 
       {/* -------- GRID SECTION ---------- */}
-      <div className="rounded-sm bg-white/6 w-full backdrop-blur-sm p-2 ">
-        <div className="grid md:grid-cols-4 lg:grid-cols-6 sm:grid-cols-2 gap-2">
+      <div className="rounded-xl bg-gradient-to-b from-gray-800/40 to-gray-900/20 border-2 border-gray-700 shadow-xl p-2">
+        <div className="grid md:flex lg:flex sm:grid-cols-2 gap-3">
           {Array.from({ length: NUM_COLS }).map((_, colIdx) => (
             <div key={`col-${colIdx}`} className="flex flex-col gap-3 w-full">
               {Array.from({ length: NUM_ROWS }).map((__, rowIdx) => {
                 const type = selections[colIdx][rowIdx];
+                const cellComplete = isCellComplete(colIdx, rowIdx);
 
                 return (
                   <div
                     key={`row-${colIdx}-${rowIdx}`}
-                    className="flex items-center gap-3 w-full"
+                    className={`flex items-center gap-3 w-fit p-1 rounded-lg ${cellComplete ? 'bg-green-900/20 border border-green-700/30' : 'bg-gray-900/10 hover:bg-gray-800/60 border border-gray-700/50'}`}
                   >
-                    <div className="bg-yellow-50/90 rounded p-0.5 flex-shrink-0 max-w-full border-1">
+                    <div className="">
                       <select
                         value={type}
                         onChange={(e) =>
                           handleSelectionChangeGrid(colIdx, rowIdx, e.target.value)
                         }
-                        className="w-15 text-xs rounded px-1 py-0.5 border border-yellow-200 outline-none bg-yellow-50 text-slate-800"
+                        className="w-20 text-xs font-medium rounded-md border-b-4 border-gray-600/80 outline-none bg-white text-gray-800 py-2 transition-all"
                       >
                         {selectionOptions.map((opt) => (
                           <option key={opt.value} value={opt.value}>
@@ -582,11 +710,10 @@ const handleKeyDown = (colIdx, rowIdx, inputIdx, e) => {
                     </div>
 
                     {/* Entry Boxes */}
-                    <div className="flex gap-0.5">
+                    <div className="flex gap-1">
                       {[0, 1, 2].map((inputIdx) => (
                         <input
                           key={`inp-${colIdx}-${rowIdx}-${inputIdx}`}
-                          
                           ref={(el) =>
                             (inputRefs.current[colIdx][rowIdx][inputIdx] = el)
                           }
@@ -598,10 +725,12 @@ const handleKeyDown = (colIdx, rowIdx, inputIdx, e) => {
                           inputMode="numeric"
                           maxLength={1}
                           disabled={isDisabled(type, inputIdx)}
-                          className={`w-8 h-8 outline-none text-center rounded border text-xs ${
+                          className={`w-10 h-10 outline-none text-center rounded-lg border-2 text-sm font-bold transition-all duration-150 ${
                             isDisabled(type, inputIdx)
-                              ? "bg-gray-200 text-gray-400 cursor-not-allowed"
-                              : "bg-white text-slate-700 border-gray-300"
+                              ? "bg-gray-800 text-gray-500 cursor-not-allowed border-gray-700"
+                              : cellComplete
+                                ? "bg-green-100 text-green-800 border-green-400 focus:ring-2 focus:ring-green-400"
+                                : "bg-white text-gray-800 border-gray-400 hover:border-blue-400 focus:ring-2 focus:ring-blue-400 focus:border-blue-500"
                           }`}
                         />
                       ))}
@@ -614,44 +743,50 @@ const handleKeyDown = (colIdx, rowIdx, inputIdx, e) => {
         </div>
       </div>
 
-      {/* -------- BOTTOM ---------- */}
-      <div className="flex justify-between items-center">
+      {/* -------- BOTTOM SECTION ---------- */}
+      <div className="flex justify-between items-center bg-gradient-to-r from-gray-800 to-gray-900 rounded-xl border-2 border-gray-700 p-4 shadow-lg">
+        {/* Barcode Section */}
         <div className="flex items-center gap-2">
-          <label htmlFor="barcode" className="text-sm text-white">
-            Barcode:
+          <label htmlFor="barcode" className="text-sm text-gray-300 font-medium">
+            BARCODE:
           </label>
-          <input
-            id="barcode"
-            value={barcode}
-            onChange={(e) => setBarcode(e.target.value)}
-            placeholder="Barcode"
-            className="px-3 py-1.5 border border-gray-300 rounded-l-md text-sm"
-          />
-          <button className="px-3 py-1.5 bg-purple-700 text-white rounded-r-md hover:bg-purple-800">
-            🔍
-          </button>
+          <div className="flex">
+            <input
+              id="barcode"
+              value={barcode}
+              onChange={(e) => setBarcode(e.target.value)}
+              placeholder="Scan or enter barcode"
+              className="px-4 py-2.5 border-2 border-r-0 border-gray-600 rounded-l-lg bg-gray-900/80 text-white focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all w-64"
+            />
+            <button className="px-5 py-2.5 bg-gradient-to-r from-purple-600 to-purple-700 text-white rounded-r-lg border-2 border-purple-500 hover:from-purple-700 hover:to-purple-800 active:border-b-0 active:mt-[2px] transition-all duration-150 font-medium">
+              🔍 Scan
+            </button>
+          </div>
         </div>
 
-        <div className="flex items-center gap-3 bg-yellow-50/90 border border-yellow-200 rounded px-4 py-2">
-          <span className="text-gray-800 font-semibold">Grand Total:</span>
-          <span className="text-black font-bold">{grandTotal}</span>
+        {/* Grand Total Display */}
+        <div className="flex items-center gap-3 bg-gradient-to-r from-amber-100 to-yellow-100 border-2 border-amber-300 rounded-lg px-6 py-3 shadow-lg">
+          <span className="text-gray-800 font-bold text-lg">GRAND TOTAL:</span>
+          <span className="text-2xl font-extrabold text-gray-900">{grandTotal}</span>
         </div>
       </div>
 
-      {/* Buttons */}
-      <div className="flex justify-center gap-4 mb-6">
+      {/* Action Buttons */}
+      <div className="flex justify-center gap-6 mb-8">
         <button
           onClick={handleReset}
-          className="px-6 py-2 bg-gray-300 text-gray-800 rounded-md shadow hover:bg-gray-400 transition"
+          className="px-8 py-3.5 bg-gradient-to-r from-gray-600 to-gray-700 text-white rounded-xl border-b-4 border-gray-800 hover:from-gray-700 hover:to-gray-800 active:border-b-0 active:mt-[4px] transition-all duration-150 font-bold text-lg shadow-lg"
         >
-          Reset
+          ↻ Reset All
         </button>
-          <button
-            onClick={handleBuyClick}
-            className="px-6 py-2 bg-green-600 text-white rounded-md shadow hover:bg-green-700 transition"
-          >
-            Buy
-          </button>
+        
+        <button
+          onClick={handleBuyClick}
+          className="px-8 py-3.5 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-xl border-b-4 border-emerald-800 hover:from-green-700 hover:to-emerald-700 active:border-b-0 active:mt-[4px] transition-all duration-150 font-bold text-lg shadow-lg"
+        >
+          💳 Buy Tickets
+        </button>
+        
       </div>
     </div>
   );
