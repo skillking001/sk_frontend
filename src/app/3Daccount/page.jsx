@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import Navbar from "../../Components/Navbar/Navbar";
+import Details from "../../Components/ThreeD/Details";
 import axios from "axios";
 import Link from "next/link";
 import { Home } from "lucide-react";
@@ -133,7 +133,7 @@ useEffect(() => {
 
     try {
       const res = await axios.post(
-        `${process.env.NEXT_PUBLIC_API_BASE_URL}/nettopaysummary`,
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/3d/nettopaysummary`,
         {
           from: fromDate,
           to: toDate,
@@ -171,7 +171,7 @@ useEffect(() => {
 
     try {
       const res = await axios.post(
-        `${process.env.NEXT_PUBLIC_API_BASE_URL}/pointallocation`,
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/3d/pointallocation"`,
         {
           from: fromDate,
           to: toDate,
@@ -202,9 +202,9 @@ useEffect(() => {
 
     try {
       const res = await axios.post(
-        `${process.env.NEXT_PUBLIC_API_BASE_URL}/pointssummary`,
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/3d/pointssummary`,
         {
-          from: fromDate,
+          from: fromDate, 
           to: toDate,
           loginId,
         }
@@ -369,7 +369,7 @@ useEffect(() => {
     <div className="min-h-screen w-full flex flex-col bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950">
       <LoadingOverlay visible={loading}/>
       <div className="mb-10">
-        <Navbar />
+        <Details />
         <div className="max-w-7xl mx-auto pt-8 px-6">
           <Link
             href="/dashboard"

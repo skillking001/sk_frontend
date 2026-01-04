@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import { Printer, Search, Calendar, Ticket, Filter, Home } from "lucide-react";
-import Navbar from "../../Components/Navbar/Navbar";
+import Details from "../../Components/ThreeD/Details";
 import Link from "next/link";
 import axios from "axios";
 import toast from "react-hot-toast";
@@ -193,7 +193,7 @@ const ReprintPage = () => {
       if (!loginId) return toast.error("User not logged in.");
 
       const res = await axios.post(
-        `${process.env.NEXT_PUBLIC_API_BASE_URL}/reprint-tickets`,
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/3d/printed-tickets`,
         { loginId }
       );
 
@@ -273,7 +273,7 @@ const handlePrint = (ticket) => {
 <div  className="min-h-screen bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900 w-full">
   <LoadingOverlay visible={loading}/>
       <div>
-      <Navbar />
+      <Details/>
 
       <div className="max-w-7xl mx-auto pt-6 px-6">
         <Link
@@ -322,13 +322,13 @@ const handlePrint = (ticket) => {
             <table className="min-w-full text-left bg-slate-800/50 text-white">
               <thead>
                 <tr className="bg-slate-700/50">
-                  <th className="px-6 py-4 text-sm font-semibold text-slate-200">Ticket No</th>
-                  <th className="px-6 py-4 text-sm font-semibold text-slate-200">Game Date</th>
-                  <th className="px-6 py-4 text-sm font-semibold text-slate-200">Game Time</th>
-                  <th className="px-6 py-4 text-sm font-semibold text-slate-200">Draw Time</th>
-                  <th className="px-6 py-4 text-sm font-semibold text-slate-200">Points</th>
-                  <th className="px-6 py-4 text-sm font-semibold text-slate-200">Quantity</th>
-                  <th className="px-6 py-4 text-sm font-semibold text-slate-200 text-center">Action</th>
+                  <th className="px-6 py-4">Ticket No</th>
+                  <th className="px-6 py-4">Game Date</th>
+                  <th className="px-6 py-4">Game Time</th>
+                  <th className="px-6 py-4">Range</th>
+                  <th className="px-6 py-4">Points</th>
+                  <th className="px-6 py-4">Quantity</th>
+                  <th className="px-6 py-4 text-center">Action</th>
                 </tr>
               </thead>
               <tbody>
@@ -346,14 +346,13 @@ const handlePrint = (ticket) => {
                   </tr>
                 ) : (
                   showData.map((row) => (
-                    <tr key={row.ticketNo} className="hover:bg-slate-700/30 transition-colors">
+                    <tr key={row.ticketNo}>
                       <td className="px-6 py-4 text-blue-400 font-mono">{row.ticketNo}</td>
                       <td className="px-6 py-4">{row.gameDate}</td>
                       <td className="px-6 py-4">{row.gameTime}</td>
-                      <td className="px-6 py-4">{Array.isArray(row.drawTime) ? row.drawTime.join(", ") : row.drawTime}</td>
+                      <td className="px-6 py-4 text-purple-400 font-bold">{row.range}</td>
                       <td className="px-6 py-4 text-green-400 font-bold">{row.totalPoints}</td>
-                      <td className="px-6 py-4 text-yellow-300 font-bold">{row.totalQuatity}</td>
-                      <td className="px-6 py-4 text-center">
+                      <td className="px-6 py-4 text-yellow-300 font-bold">{row.totalQuantity}</td>                     <td className="px-6 py-4 text-center">
                         <button
                           onClick={() => handlePrint(row)}
                           disabled={isPrinting}
