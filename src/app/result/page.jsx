@@ -60,9 +60,6 @@ const Page = () => {
     columnRanges[selectedCol].end
   );
 
-  // -------------------------------------------
-  // 🔥 Fetch winning slots for selected date
-  // -------------------------------------------
   useEffect(() => {
     setLoading(true);
 

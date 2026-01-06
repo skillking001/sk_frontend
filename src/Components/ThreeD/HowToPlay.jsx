@@ -45,43 +45,43 @@ export default function HowToPlay({ isOpen, onClose }) {
                     <td className="p-3 border border-white/20">Straight</td>
                     <td className="p-3 border border-white/20">1 2 3</td>
                     <td className="p-3 border border-white/20">Only Exact Match Wins</td>
-                    <td className="p-3 border border-white/20">900</td>
+                    <td className="p-3 border border-white/20">9000</td>
                   </tr>
                   <tr className="hover:bg-white/10 transition">
                     <td className="p-3 border border-white/20">Box (3-Way)</td>
                     <td className="p-3 border border-white/20">1 2 1</td>
                     <td className="p-3 border border-white/20">112, 121, 211</td>
-                    <td className="p-3 border border-white/20">300</td>
+                    <td className="p-3 border border-white/20">3000</td>
                   </tr>
                   <tr className="bg-white/5 hover:bg-white/10 transition">
                     <td className="p-3 border border-white/20">Box (6-Way)</td>
                     <td className="p-3 border border-white/20">1 2 3</td>
                     <td className="p-3 border border-white/20">123, 132, 213, 231, 312, 321</td>
-                    <td className="p-3 border border-white/20">150</td>
+                    <td className="p-3 border border-white/20">1500</td>
                   </tr>
                   <tr className="hover:bg-white/10 transition">
                     <td className="p-3 border border-white/20">Front Pair</td>
                     <td className="p-3 border border-white/20">1 2 X</td>
                     <td className="p-3 border border-white/20">12 + Any Number</td>
-                    <td className="p-3 border border-white/20">90</td>
+                    <td className="p-3 border border-white/20">900</td>
                   </tr>
                   <tr className="bg-white/5 hover:bg-white/10 transition">
                     <td className="p-3 border border-white/20">Back Pair</td>
                     <td className="p-3 border border-white/20">X 2 3</td>
                     <td className="p-3 border border-white/20">Any Number + 23</td>
-                    <td className="p-3 border border-white/20">90</td>
+                    <td className="p-3 border border-white/20">900</td>
                   </tr>
                   <tr className="hover:bg-white/10 transition">
                     <td className="p-3 border border-white/20">Split Pair</td>
                     <td className="p-3 border border-white/20">1 X 3</td>
                     <td className="p-3 border border-white/20">Any Number + 13</td>
-                    <td className="p-3 border border-white/20">90</td>
+                    <td className="p-3 border border-white/20">900</td>
                   </tr>
                   <tr className="bg-white/5 hover:bg-white/10 transition">
                     <td className="p-3 border border-white/20">Any Pair</td>
                     <td className="p-3 border border-white/20">X 2 3</td>
                     <td className="p-3 border border-white/20">Any Number + 23</td>
-                    <td className="p-3 border border-white/20">30</td>
+                    <td className="p-3 border border-white/20">300</td>
                   </tr>
                 </tbody>
               </table>

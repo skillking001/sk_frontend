@@ -215,10 +215,10 @@ useEffect(() => {
           sr: 1,
           name: res.data.summary.shopName,
           username: res.data.summary.userName,
-          playAmount: res.data.summary.playPoints,
-          winningAmount: res.data.summary.winningPoints,
+          playAmount: res.data.summary.playAmount,
+          winningAmount: res.data.summary.winningAmount,
           commission: res.data.summary.commission,
-          netAmount: res.data.summary.netPoints,
+          netAmount: res.data.summary.netAmount,
         },
       ]);
     } catch (err) {

@@ -3,7 +3,8 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import {jwtDecode} from "jwt-decode"; 
-
+import jsPDF from "jspdf";
+import JsBarcode from "jsbarcode";
 
 const Automatic = () => {
   const spots = ["STR", "BOX", "FP", "BP", "SP", "AP"];
@@ -80,6 +81,35 @@ const aggregateTicketNumbers = (entries) => {
     }
   }, []);
 
+const formatNumberByType = (num, spot) => {
+  if (!num || num.length !== 3) return num;
+
+  const [a, b, c] = num.split("");
+
+  switch (spot) {
+    case "STR":
+      return `${a}${b}${c}`;
+
+    case "FP":
+      return `${a}${b}*`;
+
+    case "BP":
+      return `*${b}${c}`;
+
+    case "SP":
+      return `${a}*${c}`;
+
+    case "AP":
+      return `**${c}`; // optional rule, adjust if needed
+
+    case "BOX":
+      return `${a}${b}${c}`;
+
+    default:
+      return num;
+  }
+};
+
   // ---------------------- CHECKBOX LOGIC ------------------------
   const handleCheck = (label) => {
     if (label === "ALL") {
@@ -95,9 +125,8 @@ const aggregateTicketNumbers = (entries) => {
     setChecks(updated);
   };
 
-  const autoAddNumber = (val) => {
+const autoAddNumber = (val) => {
   const selectedSpots = Object.keys(checkboxLabels).filter((l) => checks[l]);
-
   if (selectedSpots.length === 0) return;
 
   let newEntries = [...entries];
@@ -105,14 +134,18 @@ const aggregateTicketNumbers = (entries) => {
 
   selectedSpots.forEach((label) => {
     const spotKey = checkboxLabels[label];
+
+    const formattedNumber = formatNumberByType(val, spotKey);
+
     const entry = {
       id: Date.now() + Math.random(),
-      number: val,
+      number: formattedNumber,   // ✅ formatted number
       type: label,
       spot: spotKey,
       rate: selectedRate,
       quantity: 1,
     };
+
     newEntries.push(entry);
     updatedSpots[spotKey].qty += 1;
     updatedSpots[spotKey].rs += selectedRate;
@@ -120,7 +153,7 @@ const aggregateTicketNumbers = (entries) => {
 
   setEntries(newEntries);
   setSpotData(updatedSpots);
-  setNumberInput(""); // clear box
+  setNumberInput("");
   localStorage.setItem("tickets", JSON.stringify(newEntries));
 };
 
@@ -142,16 +175,107 @@ const aggregateTicketNumbers = (entries) => {
 const handleAddNumber = () => {}; 
 
 
-  const handleBuy = async () => {
+const generateAutomaticReceipt = (data, ticketId) => {
+  return new Promise((resolve) => {
+    const lineHeight = 5;
+    const rows = data.lines.length;
+
+    const afterListLineGap = 6;
+    const totalsBlock = 15;
+    const barcodeBlock = 30;
+
+    const requiredHeight =
+      60 + rows * lineHeight + afterListLineGap + totalsBlock + barcodeBlock;
+
+    const pageHeight = Math.max(297, requiredHeight);
+
+    const pdf = new jsPDF({
+      orientation: "portrait",
+      unit: "mm",
+      format: [80, pageHeight],
+    });
+
+    /* ---------- HEADER ---------- */
+    pdf.setFontSize(10);
+    pdf.text("SKILL KING", 40, 10, { align: "center" });
+    pdf.setFontSize(8);
+    pdf.text("Automatic Ticket Receipt", 40, 15, { align: "center" });
+    pdf.text(`Date: ${data.gameTime}`, 40, 20, { align: "center" });
+
+    pdf.setLineWidth(0.5);
+    pdf.line(5, 25, 75, 25);
+
+    pdf.setFontSize(9);
+    pdf.text(`Login Id: ${data.loginId}`, 5, 30);
+
+    pdf.line(5, 33, 75, 33);
+
+    /* ---------- TICKET LINES ---------- */
+    let yPos = 38;
+    pdf.setFontSize(8);
+
+    data.lines.forEach((line) => {
+      pdf.text(`${line.label} : ${line.amount}`, 5, yPos);
+      yPos += lineHeight;
+    });
+
+    pdf.line(5, yPos, 75, yPos);
+    yPos += 6;
+
+    /* ---------- TOTAL ---------- */
+    pdf.setFontSize(10);
+    pdf.text(`TOTAL AMOUNT : ${data.totalAmount}`, 5, yPos);
+    yPos += 10;
+
+    /* ---------- BARCODE ---------- */
+    const canvas = document.createElement("canvas");
+    JsBarcode(canvas, String(ticketId), {
+      format: "CODE128",
+      width: 2,
+      height: 50,
+      displayValue: false,
+      margin: 5,
+    });
+
+    const barcodeImage = canvas.toDataURL("image/png");
+    pdf.addImage(barcodeImage, "PNG", 10, yPos, 60, 20);
+
+    pdf.setFontSize(12);
+    pdf.text(`SK${ticketId}`, 40, yPos + 28, { align: "center" });
+
+    /* ---------- PRINT ---------- */
+    pdf.autoPrint();
+    const pdfBlob = pdf.output("blob");
+    const pdfUrl = URL.createObjectURL(pdfBlob);
+
+    const printFrame = document.createElement("iframe");
+    printFrame.style.display = "none";
+    document.body.appendChild(printFrame);
+
+    printFrame.onload = () => {
+      printFrame.contentWindow.print();
+      setTimeout(() => {
+        document.body.removeChild(printFrame);
+        URL.revokeObjectURL(pdfUrl);
+        resolve();
+      }, 5000);
+    };
+
+    printFrame.src = pdfUrl;
+  });
+};
+
+
+const handleBuy = async () => {
   try {
     if (entries.length === 0) {
-      console.warn("No entries to buy");
+      alert("No entries to buy");
       return;
     }
 
     setIsBuying(true);
 
-    // Attempt to read loginId from JWT (if present)
+    /* ---------- GET LOGIN ID ---------- */
     let loginId = "unknown";
     try {
       const token = localStorage.getItem("userToken");
@@ -159,53 +283,84 @@ const handleAddNumber = () => {};
         const decoded = jwtDecode(token);
         loginId = decoded?.id || decoded?.userId || loginId;
       }
-    } catch (err) {
-      console.warn("JWT decode failed, using unknown loginId");
+    } catch {
+      console.warn("JWT decode failed");
     }
 
+    /* ---------- AGGREGATE ENTRIES ---------- */
     const ticketNumbers = aggregateTicketNumbers(entries);
-    const totalQuantity = ticketNumbers.reduce((s, t) => s + (Number(t.quantity) || 0), 0);
-    const totalPoints = ticketNumbers.reduce((s, t) => s + (Number(t.rate) || 0), 0);
 
+    const totalQuantity = ticketNumbers.reduce(
+      (sum, t) => sum + (Number(t.quantity) || 0),
+      0
+    );
+
+    const totalPoints = ticketNumbers.reduce(
+      (sum, t) => sum + (Number(t.rate) || 0),
+      0
+    );
+
+    /* ---------- BACKEND PAYLOAD ---------- */
     const payload = {
       gameTime: new Date().toISOString(),
       loginId,
       ticketNumbers,
       range: Number(selectedRate || 10),
       totalQuantity,
-      totalPoints: String(totalPoints), // your model expected string for totalPoints
+      totalPoints: String(totalPoints),
     };
 
-    // Save to backend
     const urlBase = process.env.NEXT_PUBLIC_API_BASE_URL || "";
-    const res = await axios.post(`${urlBase}/save-threed`, payload);
+    const response = await axios.post(`${urlBase}/save-threed`, payload);
 
-    console.log("Buy response:", res?.data);
+    /* ---------- EXTRACT TICKET ID ---------- */
+    const ticketId =
+      response?.data?.ticket?.id ||
+      response?.data?.ticketId ||
+      Date.now();
 
-    // Save copy to local history (so you have a local record)
-    const historyKey = "tickets_history";
-    try {
-      const hist = JSON.parse(localStorage.getItem(historyKey) || "[]");
-      hist.push({
-        createdAt: new Date().toISOString(),
-        payload,
-        response: res?.data || null,
-      });
-      localStorage.setItem(historyKey, JSON.stringify(hist));
-    } catch (err) {
-      console.warn("failed save history:", err);
-    }
+    /* ---------- BUILD PRINT LINES ---------- */
+    const printLines = ticketNumbers.map((t) => ({
+      label: `${t.type}-${String(t.number).toUpperCase()}`,
+      amount: Number(t.rate) || 0,
+    }));
 
-    // Optionally clear current entries and spotData after successful buy:
+    const printTotalAmount = printLines.reduce(
+      (sum, l) => sum + l.amount,
+      0
+    );
+
+    /* ---------- PRINT RECEIPT ---------- */
+    await generateAutomaticReceipt(
+      {
+        gameTime: new Date().toLocaleString(),
+        loginId,
+        lines: printLines,
+        totalAmount: printTotalAmount,
+      },
+      ticketId
+    );
+
+    /* ---------- RESET UI AFTER PRINT ---------- */
     setEntries([]);
-    setSpotData(spots.reduce((acc, s) => ({ ...acc, [s]: { qty: 0, rs: 0 } }), {}));
-    localStorage.removeItem("tickets"); // clear current workspace storage
+    setSpotData(
+      spots.reduce(
+        (acc, s) => ({ ...acc, [s]: { qty: 0, rs: 0 } }),
+        {}
+      )
+    );
 
-    // success UX
-    alert(res?.data?.message || "Tickets saved");
-  } catch (err) {
-    console.error("Buy failed:", err);
-    alert("Failed to save tickets. See console.");
+    localStorage.removeItem("tickets");
+
+    alert("Tickets saved & printed successfully!");
+
+  } catch (error) {
+    console.error("BUY ERROR:", error);
+    alert(
+      error?.response?.data?.message ||
+      error?.message ||
+      "Failed to save tickets"
+    );
   } finally {
     setIsBuying(false);
   }
