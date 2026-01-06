@@ -1609,12 +1609,12 @@ return (
       {
         label: "All",
         value: "all",
-        activeClass: "from-purple-600 to-pink-600",
+        activeClass: "from-green-600 to-green-600/50",
       },
       {
         label: "Even",
         value: "even",
-        activeClass: "from-blue-600 to-indigo-600",
+        activeClass: "from-yellow-400 to-yellow-400/80",
       },
       {
         label: "Odd",
@@ -1690,7 +1690,7 @@ return (
       }}
       className={`px-2 py-1 text-sm rounded-md border-b-3 border-green-500/30 font-semibold transition-all duration-200 flex items-center gap-2 min-w-[80px] justify-center ${
         isFPMode
-          ? "text-white bg-gradient-to-r from-green-600 to-lime-600 shadow-lg"
+          ? "text-white bg-gradient-to-r from-gray-600 to-gray-600/50 shadow-lg"
           : "text-[#4A314D] bg-[#ece6fc] border border-[#968edb] hover:bg-[#e5def7] shadow-md"
       }`}
     >
@@ -1771,153 +1771,152 @@ return (
     {/* Main Content Row */}
     <div className="flex p-2 gap-2" style={{ minWidth: '1400px' }}>
       {/* Left Panel */}
-      <div className="rounded-sm shadow-2xl bg-gradient-to-b from-slate-100/95 to-slate-300/80 p-2 border-2 border-gray-300/50 min-h-[600px] w-[320px] backdrop-blur-sm flex-shrink-0">
-        <div className="flex gap-3 mb-2">
-          {[
-            { key: "10-19", label: "F7 (10-19)" },
-            { key: "30-39", label: "F8 (30-39)" },
-            { key: "50-59", label: "F9 (50-59)" },
-          ].map((tab) => (
-            <button
-              key={tab.key}
-              onClick={() => handleColButton(tab.key)}
-              className={`px-2 py-1 rounded-md border-b-4 border-purple-800/50 font-bold text-sm w-full text-white ${
-                activeFilter === tab.key
-                  ? "bg-gradient-to-r from-purple-700 to-pink-600 scale-105 shadow-lg"
-                  : "bg-gradient-to-r from-purple-500 to-pink-500"
-              } hover:from-pink-500 hover:to-purple-500 shadow-lg hover:shadow-purple-500/25 transition-all duration-300 active:scale-95 border border-purple-400/30`}
-            >
-              {tab.label}
-            </button>
-          ))}
-        </div>
+<div className="rounded-sm shadow-2xl bg-gradient-to-b from-slate-100/95 to-slate-300/80 p-2 border-2 border-gray-300/50 min-h-[600px] w-[320px] backdrop-blur-sm flex-shrink-0">
+  <div className="flex gap-3 mb-2">
+    {[
+      { key: "10-19", label: "F7 (10-19)" },
+      { key: "30-39", label: "F8 (30-39)" },
+      { key: "50-59", label: "F9 (50-59)" },
+    ].map((tab) => (
+      <button
+        key={tab.key}
+        onClick={() => handleColButton(tab.key)}
+        className={`px-2 py-1 rounded-md border-b-4 border-gray-800/50 font-bold text-sm w-full text-white ${
+          activeFilter === tab.key
+            ? "bg-gradient-to-r from-gray-900 to-gray-800 scale-105 shadow-lg"
+            : "bg-gradient-to-r from-gray-500 to-gray-500"
+        } hover:from-gray-500 hover:to-gray-500 shadow-lg hover:shadow-grag-500/25 transition-all duration-300 active:scale-95 border border-purple-400/30`}
+      >
+        {tab.label}
+      </button>
+    ))}
+  </div>
 
-        {/* Number + Checkbox Grid */}
-        <div className="grid grid-cols-3 gap-1 mb-4 mt-5">
-          {range(0, 9).map((row) =>
-            allNumbers.map((colArray, colIdx) => {
-              const num = colArray[row];
-              const color =
-                numberBoxColors[row % numberBoxColors.length];
-              return (
-                <div
-                  key={num}
-                  className={`relative flex items-center gap-1 px-2 py-1 ${color} hover:scale-105 transition-all duration-200 cursor-pointer`}
-                  style={{
-                    border: "2px solid #fff",
-                    borderRadius: "12px",
-                    margin: "0",
-                    boxShadow: "0 4px 8px rgba(0,0,0,0.15)",
-                  }}
-                >
-                  <input
-                    type="checkbox"
-                    checked={selected[row][colIdx]}
-                    onChange={() => {
-                      const checkboxNum = allNumbers[colIdx][row];
-                      const wasChecked = selected[row][colIdx];
-                      handleCheckboxClick(checkboxNum);
-                      toggle(row, colIdx);
-
-                      if (!wasChecked) {
-                        if (activeCheckbox)
-                          persistActiveNumber(activeCheckbox);
-
-                        setActiveCheckbox(checkboxNum);
-                        setActiveColGroup(null);
-
-                        setCellOverrides({});
-                        setColumnHeaders(Array(10).fill(""));
-                        setRowHeaders(Array(10).fill(""));
-
-                        loadNumberIntoUI(checkboxNum);
-                      } else {
-                        setCheckboxInputs((prev) => {
-                          const updated = { ...prev };
-                          delete updated[checkboxNum];
-                          return updated;
-                        });
-
-                        if (activeCheckbox === checkboxNum) {
-                          persistActiveNumber(checkboxNum);
-                          setActiveCheckbox(null);
-                          setActiveColGroup(null);
-                          setColumnHeaders(Array(10).fill(""));
-                          setRowHeaders(Array(10).fill(""));
-                          setCellOverrides({});
-                        }
-                      }
-                    }}
-                    className="peer appearance-none w-6 h-6 rounded bg-white border-2 border-[#4A314D] checked:bg-gradient-to-r checked:from-purple-600 checked:to-pink-600 checked:border-purple-600 flex-shrink-0 transition-all duration-200 hover:scale-110"
-                    style={{
-                      boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
-                    }}
-                  />
-                  <span
-                    className={`absolute left-3 top-3 text-white text-sm font-bold pointer-events-none transition-all duration-200 ${
-                      selected[row][colIdx]
-                        ? "opacity-100 scale-100"
-                        : "opacity-0 scale-50"
-                    }`}
-                  >
-                    ✓
-                  </span>
-                  <span
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      toggleNumberBox(row, colIdx);
-                      setActiveCheckbox(num);
-                      setActiveColGroup(null);
-                      setActiveNumber((prev) => (prev === num ? null : num));
-                    }}
-                    className={`w-10 h-7 flex items-center justify-center font-bold text-md border-2 rounded transition-all
-                    ${activeNumber === num ? "bg-blue-600 text-white" :
-                      selectedNumbers.includes(num) ? "bg-purple-700 text-white" :
-                      "bg-white text-[#4A314D]"}`}
-                    style={{
-                      boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
-                    }}
-                  >
-                    {num}
-                  </span>
-                </div>
-              );
-            })
-          )}
-        </div>
-
-        {/* Buttons */}
-        <div className="flex gap-3 mt-6">
-          <button
-            type="button"
-            onClick={handlePrint}
-            disabled={!canPrint || isPrinting || isBlocked}
-            className={`
-              flex-1 flex items-center justify-center gap-2 py-2 rounded-md 
-              border-b-4 border-blue-900/80 font-semibold text-white 
-              bg-gradient-to-r from-purple-600 to-blue-500 shadow-lg 
-              hover:shadow-purple-500/25 hover:from-purple-500 hover:to-blue-400 
-              transition-all duration-300 hover:scale-105 active:scale-95
-              ${(!canPrint || isPrinting || isBlocked) ? "opacity-50 cursor-not-allowed" : ""}
-            `}
-          >
-            {isBlocked ? "Blocked" : isPrinting ? "Printing..." : "Print"}
-          </button>
-          <button
-            onClick={() => {
-              window.location.reload();
-              setCheckboxInputs({});
-              localStorage.removeItem("checkboxInputs");
-              setStoreByNum({});
-              localStorage.removeItem(LS_KEY);
+  {/* Number + Checkbox Grid */}
+  <div className="grid grid-cols-3 gap-1 mb-4 mt-5">
+    {range(0, 9).map((row) =>
+      allNumbers.map((colArray, colIdx) => {
+        const num = colArray[row];
+        return (
+          <div
+            key={num}
+            className={`relative flex items-center gap-1 px-2 py-1 hover:scale-105 transition-all duration-200 cursor-pointer`}
+            style={{
+              border: "2px solid #fff",
+              borderRadius: "12px",
+              margin: "0",
+              boxShadow: "0 4px 8px rgba(0,0,0,0.15)",
+              background: "linear-gradient(to bottom, #475569, #334155)"
             }}
-            className="flex-1 flex items-center justify-center gap-2 py-2 rounded-sm font-semibold text-white bg-gradient-to-r border-b-4 border-red-600/50 from-pink-500 to-red-500 shadow-lg hover:shadow-pink-500/25 hover:from-pink-400 hover:to-red-400 transition-all duration-300 hover:scale-105 active:scale-95 text-sm"
           >
-            <RotateCcw className="w-5 h-5" />
-            Reset (F10)
-          </button>
-        </div>
-      </div>
+            <input
+              type="checkbox"
+              checked={selected[row][colIdx]}
+              onChange={() => {
+                const checkboxNum = allNumbers[colIdx][row];
+                const wasChecked = selected[row][colIdx];
+                handleCheckboxClick(checkboxNum);
+                toggle(row, colIdx);
+
+                if (!wasChecked) {
+                  if (activeCheckbox)
+                    persistActiveNumber(activeCheckbox);
+
+                  setActiveCheckbox(checkboxNum);
+                  setActiveColGroup(null);
+
+                  setCellOverrides({});
+                  setColumnHeaders(Array(10).fill(""));
+                  setRowHeaders(Array(10).fill(""));
+
+                  loadNumberIntoUI(checkboxNum);
+                } else {
+                  setCheckboxInputs((prev) => {
+                    const updated = { ...prev };
+                    delete updated[checkboxNum];
+                    return updated;
+                  });
+
+                  if (activeCheckbox === checkboxNum) {
+                    persistActiveNumber(checkboxNum);
+                    setActiveCheckbox(null);
+                    setActiveColGroup(null);
+                    setColumnHeaders(Array(10).fill(""));
+                    setRowHeaders(Array(10).fill(""));
+                    setCellOverrides({});
+                  }
+                }
+              }}
+              className="peer appearance-none w-6 h-6 rounded bg-gradient-to-b from-slate-400 to-slate-500 border-2 border-slate-600 checked:bg-gradient-to-b checked:from-slate-800 checked:to-slate-900 checked:border-slate-800 flex-shrink-0 transition-all duration-200 hover:scale-110"
+              style={{
+                boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
+              }}
+            />
+            <span
+              className={`absolute left-3 top-3 text-white text-sm font-bold pointer-events-none transition-all duration-200 ${
+                selected[row][colIdx]
+                  ? "opacity-100 scale-100"
+                  : "opacity-0 scale-50"
+              }`}
+            >
+              ✓
+            </span>
+            <span
+              onClick={(e) => {
+                e.stopPropagation();
+                toggleNumberBox(row, colIdx);
+                setActiveCheckbox(num);
+                setActiveColGroup(null);
+                setActiveNumber((prev) => (prev === num ? null : num));
+              }}
+              className={`w-10 h-7 flex items-center justify-center font-bold text-md border-2 rounded transition-all
+                ${activeNumber === num ? "bg-gradient-to-r from-blue-600 to-blue-700 text-white" :
+                  selectedNumbers.includes(num) ? "bg-gradient-to-r from-slate-800 to-slate-900 text-white" :
+                  "bg-gradient-to-r from-slate-300 to-slate-400 text-slate-900"}`}
+              style={{
+                boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
+              }}
+            >
+              {num}
+            </span>
+          </div>
+        );
+      })
+    )}
+  </div>
+
+  {/* Buttons */}
+  <div className="flex gap-3 mt-6">
+    <button
+      type="button"
+      onClick={handlePrint}
+      disabled={!canPrint || isPrinting || isBlocked}
+      className={`
+        flex-1 flex items-center justify-center gap-2 py-2 rounded-md 
+        border-b-4 border-blue-900/80 font-semibold text-white 
+        bg-gradient-to-r from-purple-600 to-blue-500 shadow-lg 
+        hover:shadow-purple-500/25 hover:from-purple-500 hover:to-blue-400 
+        transition-all duration-300 hover:scale-105 active:scale-95
+        ${(!canPrint || isPrinting || isBlocked) ? "opacity-50 cursor-not-allowed" : ""}
+      `}
+    >
+      {isBlocked ? "Blocked" : isPrinting ? "Printing..." : "Print"}
+    </button>
+    <button
+      onClick={() => {
+        window.location.reload();
+        setCheckboxInputs({});
+        localStorage.removeItem("checkboxInputs");
+        setStoreByNum({});
+        localStorage.removeItem(LS_KEY);
+      }}
+      className="flex-1 flex items-center justify-center gap-2 py-2 rounded-sm font-semibold text-white bg-gradient-to-r border-b-4 border-red-600/50 from-pink-500 to-red-500 shadow-lg hover:shadow-pink-500/25 hover:from-pink-400 hover:to-red-400 transition-all duration-300 hover:scale-105 active:scale-95 text-sm"
+    >
+      <RotateCcw className="w-5 h-5" />
+      Reset (F10)
+    </button>
+  </div>
+</div>
 
       {/* Main Table */}
       <div className="flex-1 bg-gradient-to-b from-slate-800/70 to-slate-900/90 rounded-sm shadow-2xl border-2 border-slate-700/50 transparent-scrollbar p-1 overflow-hidden backdrop-blur-sm">
