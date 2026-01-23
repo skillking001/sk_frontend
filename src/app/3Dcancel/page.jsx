@@ -26,6 +26,19 @@ function getLoginIdFromToken() {
   return null;
 }
 
+const formatTimeOnly = (isoString) => {
+  if (!isoString) return "";
+
+  const date = new Date(isoString);
+
+  return date.toLocaleTimeString("en-IN", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: true,
+  });
+};
+
+
 
 /* ---------- Page Component ---------- */
 export default function Page() {
@@ -85,7 +98,7 @@ const fetchTickets = useCallback(async () => {
       allTickets.push({
         sr: sr++,
         id: ticket.id,                          // IMPORTANT
-        drawTime: ticket.gameTime,              // display only
+        drawTime: formatTimeOnly(ticket.gameTime),              // display only
         ticketNo: formattedTicketNo,
         point: ticket.totalPoints,
         quantity: ticket.totalQuantity,
