@@ -1229,13 +1229,17 @@ const handleClaimTicket = async () => {
 const generatePrintReceipt = (data, ticketId) => {
   return new Promise((resolve) => {
     const lineHeight = 4;
-    const ticketArray = (data.ticketNumber || "").split(", ").filter(Boolean);
+    const ticketArray = (data.ticketNumber || "")
+      .split(", ")
+      .filter(Boolean);
+
     const ticketRows = Math.ceil(ticketArray.length / 3);
 
     const afterListLineGap = 5;
     const totalsBlock = 5 + 5 + 8;
     const barcodeBlock = 20 + 10;
 
+    // 🔥 Calculate total receipt height
     let requiredHeight =
       50 +
       ticketRows * lineHeight +
@@ -1243,86 +1247,103 @@ const generatePrintReceipt = (data, ticketId) => {
       totalsBlock +
       barcodeBlock;
 
-    const pageHeight = Math.max(297, requiredHeight);
+    const pageHeight = Math.max(requiredHeight, 100);
 
+    // ✅ Create ONE long receipt page
     const pdf = new jsPDF({
       orientation: "portrait",
       unit: "mm",
       format: [80, pageHeight],
+      compress: true,
+      putOnlyUsedFonts: true,
     });
 
+    // ================= HEADER =================
     pdf.setFontSize(10);
     pdf.text("SKILL KING", 40, 10, { align: "center" });
+
     pdf.setFontSize(8);
     pdf.text("This game for Adults Amusement Only", 40, 15, {
       align: "center",
     });
-    pdf.text("GST No Issued by Govt of India", 40, 20, { align: "center" });
-    pdf.text("GST No: In Process", 40, 25, { align: "center" });
-    pdf.text(`Date: ${data.gameTime}`, 40, 30, { align: "center" });
+    pdf.text("GST No Issued by Govt of India", 40, 20, {
+      align: "center",
+    });
+    pdf.text("GST No: In Process", 40, 25, {
+      align: "center",
+    });
+    pdf.text(`Date: ${data.gameTime}`, 40, 30, {
+      align: "center",
+    });
 
-    pdf.setLineWidth(0.5);
+    pdf.setLineWidth(0.3);
     pdf.line(5, 33, 75, 33);
 
+    // ================= INFO =================
     pdf.setFontSize(9);
+
     const drawTimeText = Array.isArray(data.drawTime)
       ? data.drawTime.length > 1
         ? `Draw Times: ${data.drawTime.join(", ")}`
         : `Draw Time: ${data.drawTime[0]}`
       : `Draw Time: ${data.drawTime}`;
+
     pdf.text(drawTimeText, 5, 38);
     pdf.text(`Login Id: ${data.loginId}`, 5, 43);
 
     pdf.line(5, 45, 75, 45);
 
+    // ================= TICKETS =================
     let yPos = 50;
+
+    pdf.setFontSize(7);
+
     for (let i = 0; i < ticketArray.length; i += 3) {
       let rowText = "";
+
       for (let j = 0; j < 3 && i + j < ticketArray.length; j++) {
         const ticket = ticketArray[i + j];
         const formattedTicket = ticket.substring(0, 18);
         rowText += formattedTicket.padEnd(25, " ");
       }
-      pdf.setFontSize(7);
+
       pdf.text(rowText.trim(), 5, yPos);
       yPos += lineHeight;
     }
 
     pdf.line(5, yPos, 75, yPos);
-    yPos += 5;
+    yPos += afterListLineGap;
 
-    pdf.setFontSize(10);
+    // ================= TOTALS =================
+    pdf.setFontSize(9);
     pdf.text(`Total Quantity : ${data.totalQuatity}`, 5, yPos);
     yPos += 5;
+
     pdf.text(`Total Amount : ${data.totalPoints}`, 5, yPos);
     yPos += 8;
 
-    // ✅ Keep only the numeric ticketId encoded in the barcode
+    // ================= BARCODE =================
     const barcodeValue = String(ticketId);
 
-    // Generate the barcode image
     const canvas = document.createElement("canvas");
     JsBarcode(canvas, barcodeValue, {
       format: "CODE128",
       width: 2,
       height: 50,
       displayValue: false,
-      margin: 5,
+      margin: 0,
     });
 
     const barcodeImage = canvas.toDataURL("image/png");
     pdf.addImage(barcodeImage, "PNG", 10, yPos, 60, 20);
 
-    // Add text "SK<ticketId>" below barcode (printed only)
     pdf.setFontSize(12);
     pdf.text(`SK${ticketId}`, 40, yPos + 28, { align: "center" });
 
-    // ✅ Print using hidden iframe
-    pdf.autoPrint();
+    // ================= PRINT =================
     const pdfBlob = pdf.output("blob");
     const pdfUrl = URL.createObjectURL(pdfBlob);
-    
-    // Create hidden iframe for printing
+
     const printFrame = document.createElement("iframe");
     printFrame.style.position = "fixed";
     printFrame.style.right = "0";
@@ -1330,50 +1351,47 @@ const generatePrintReceipt = (data, ticketId) => {
     printFrame.style.width = "0";
     printFrame.style.height = "0";
     printFrame.style.border = "none";
-    
+
     document.body.appendChild(printFrame);
-    
-    // Track if print dialog was opened
-    let printDialogOpened = false;
-    
-    printFrame.onload = function() {
+
+    let printed = false;
+
+    printFrame.onload = () => {
       try {
         printFrame.contentWindow.focus();
         printFrame.contentWindow.print();
-        printDialogOpened = true;
-        
-        // ✅ Wait longer before cleanup - give user time to print/cancel
+        printed = true;
+
         setTimeout(() => {
           if (document.body.contains(printFrame)) {
             document.body.removeChild(printFrame);
           }
           URL.revokeObjectURL(pdfUrl);
           resolve();
-        }, 5000); // Wait 5 seconds instead of 1
-        
+        }, 5000);
       } catch (err) {
         console.error("Print error:", err);
-        if (document.body.contains(printFrame)) {
-          document.body.removeChild(printFrame);
-        }
-        URL.revokeObjectURL(pdfUrl);
-        toast.error("Unable to print. Please try again.");
-        resolve();
+        cleanup();
       }
     };
-    
-    // Fallback cleanup if iframe fails to load
-    setTimeout(() => {
-      if (!printDialogOpened && document.body.contains(printFrame)) {
+
+    const cleanup = () => {
+      if (document.body.contains(printFrame)) {
         document.body.removeChild(printFrame);
-        URL.revokeObjectURL(pdfUrl);
-        resolve();
       }
-    }, 10000); // 10 second absolute timeout
-    
+      URL.revokeObjectURL(pdfUrl);
+      resolve();
+    };
+
+    // Fallback cleanup
+    setTimeout(() => {
+      if (!printed) cleanup();
+    }, 10000);
+
     printFrame.src = pdfUrl;
   });
 };
+
 
 
 function handleCheckboxClick(num) {
