@@ -28,18 +28,15 @@ const Page = () => {
   useEffect(() => {
   const loadWinning = async () => {
     try {
-      const res = await fetch(
+      const res = await axios.get(
         `${process.env.NEXT_PUBLIC_API_BASE_URL}/get-winning-today`
       );
 
-      const data = await res.json();
-
-      if (data?.winningNumbers?.length > 0) {
-        setWinningNumbers(data.winningNumbers);
+      if (res.data?.winningNumbers?.length > 0) {
+        setWinningNumbers(res.data.winningNumbers);
       } else {
-        setWinningNumbers([]); // blank
+        setWinningNumbers([]);
       }
-
     } catch (err) {
       console.error("Failed fetching winning numbers", err);
       setWinningNumbers([]);
@@ -48,6 +45,7 @@ const Page = () => {
 
   loadWinning();
 }, []);
+
 
 
   // -----------------------------
