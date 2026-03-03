@@ -7,6 +7,8 @@ import HowToPlay from "../../Components/ThreeD/HowToPlay";
 import { useRouter } from "next/navigation";
 import Details from '../../Components/ThreeD/Details'
 
+import axios from "axios";
+
 const Page = () => {
   const router = useRouter();
 

@@ -268,22 +268,32 @@ export default function ShowResult({ drawTime }) {
       setGameId("-");
     }
   }, []);
+  
 
 useEffect(() => {
   if (!drawTime || gameId === "-") return;
 
-  const backendDrawTime = getBackendDrawTime(drawTime);
-  const cacheKey = `winning_result_${gameId}_${backendDrawTime}`;
+  let isMounted = true; // ✅ must be inside effect
 
-  // 📦 1. Try localStorage first
+  const backendDrawTime = getBackendDrawTime(drawTime);
+  const cacheKey = `winning_result_${gameId}`;
+
+  /* -------------------------
+     1️⃣ Check localStorage
+  -------------------------- */
   try {
     const cached = localStorage.getItem(cacheKey);
     if (cached) {
       const parsed = JSON.parse(cached);
-      if (parsed?.ticketNumbers) {
+
+      if (
+        parsed &&
+        parsed.drawTime === backendDrawTime &&
+        Array.isArray(parsed.ticketNumbers)
+      ) {
         setTicketNumbers(parsed.ticketNumbers);
         setIsLoading(false);
-        return; // ⛔ STOP — no API call
+        return;
       }
     }
   } catch (e) {
@@ -292,13 +302,19 @@ useEffect(() => {
 
   setIsLoading(true);
 
+  /* -------------------------
+     2️⃣ Fetch from API
+  -------------------------- */
   axios
     .post(`${process.env.NEXT_PUBLIC_API_BASE_URL}/get-winning-numbers`, {
       drawTime: backendDrawTime,
       adminId: gameId,
     })
     .then((res) => {
+      if (!isMounted) return; // ✅ cancel guard
+
       let tickets = [];
+
       if (Array.isArray(res.data.selectedTickets)) {
         tickets = res.data.selectedTickets;
       } else if (res.data.numbersBySeries) {
@@ -310,24 +326,21 @@ useEffect(() => {
 
       setTicketNumbers(resultRows);
 
-      // 💾 Save to localStorage
-      try {
-        localStorage.setItem(
-          cacheKey,
-          JSON.stringify({
-            timestamp: new Date().toISOString(),
-            ticketNumbers: resultRows,
-          })
-        );
-        console.log("💾 Saved to localStorage:", cacheKey);
-      } catch (e) {
-        console.warn("⚠ localStorage write failed");
-      }
+      localStorage.setItem(
+        cacheKey,
+        JSON.stringify({
+          drawTime: backendDrawTime,
+          timestamp: new Date().toISOString(),
+          ticketNumbers: resultRows,
+        })
+      );
 
       setIsLoading(false);
     })
     .catch((err) => {
-      console.error("❌ API error fetching winning numbers:", err);
+      if (!isMounted) return; // ✅ cancel guard
+
+      console.error("❌ API error:", err);
       setTicketNumbers([
         Array(10).fill(""),
         Array(10).fill(""),
@@ -335,9 +348,12 @@ useEffect(() => {
       ]);
       setIsLoading(false);
     });
+
+  // ✅ Proper cleanup
+  return () => {
+    isMounted = false;
+  };
 }, [drawTime, gameId]);
-
-
   return (
     <div className="w-full h-full flex items-center justify-center p-2 relative">
       <img

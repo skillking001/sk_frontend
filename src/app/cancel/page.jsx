@@ -60,64 +60,74 @@ useEffect(() => {
 }, [loginId]);
 
 
-  const fetchTickets = useCallback(async () => {
-    try {
-      setLoading(true);
+const fetchTickets = useCallback(async () => {
+  try {
+    setLoading(true);
     if (!loginId) return;
 
+    const savedSlot = localStorage.getItem("currentDrawSlot");
 
-      const { data } = await axios.post(
-        `${process.env.NEXT_PUBLIC_API_BASE_URL}/show-tickets`,
-        { loginId }
-      );
+    if (!savedSlot) {
+      toast.error("Draw slot not found.");
+      setLoading(false);
+      return;
+    }
 
-      const allTickets = [];
-      let sr = 1;
+    const { data } = await axios.post(
+      `${process.env.NEXT_PUBLIC_API_BASE_URL}/show-tickets`,
+      {
+        loginId,
+        drawTime: savedSlot,
+      }
+    );
 
-      data.forEach((group) => {
-        group.tickets.forEach((ticket) => {
-          const formattedDrawTime = Array.isArray(ticket.drawTime)
-            ? ticket.drawTime.join(", ")
-            : typeof ticket.drawTime === "string" && ticket.drawTime.startsWith("[")
-            ? JSON.parse(ticket.drawTime).join(", ")
-            : ticket.drawTime;
+    const allTickets = [];
+    let sr = 1;
+
+    data.forEach((group) => {
+      group.tickets.forEach((ticket) => {
+        const formattedDrawTime = Array.isArray(ticket.drawTime)
+          ? ticket.drawTime.join(", ")
+          : ticket.drawTime;
 
 let formattedTicketNo = "";
-if (Array.isArray(ticket.ticketNumber)) {
-  formattedTicketNo = ticket.ticketNumber
-    .map((item) => `${item.ticketNumber} : ${item.quantity}`)
-    .join(", ");
-} else if (typeof ticket.ticketNumber === "string") {
+
+let parsedTicketNumbers = ticket.ticketNumber;
+
+if (typeof parsedTicketNumbers === "string") {
   try {
-    const parsed = JSON.parse(ticket.ticketNumber);
-    formattedTicketNo = parsed
-      .map((item) => `${item.ticketNumber} : ${item.quantity}`)
-      .join(", ");
-  } catch {
-    formattedTicketNo = ticket.ticketNumber;
+    parsedTicketNumbers = JSON.parse(parsedTicketNumbers);
+  } catch (err) {
+    console.error("Ticket parse error:", err);
+    parsedTicketNumbers = [];
   }
 }
 
+if (Array.isArray(parsedTicketNumbers)) {
+  formattedTicketNo = parsedTicketNumbers
+    .map((item) => `${item.ticketNumber}-${item.quantity}`)
+    .join(", ");
+}
 
-          allTickets.push({
-            sr: sr++,
-            id: ticket.id,
-            drawTime: formattedDrawTime,
-            ticketNo: formattedTicketNo,
-            point: ticket.totalPoints,
-            quantity: ticket.totalQuatity,
-          });
+        allTickets.push({
+          sr: sr++,
+          id: ticket.id,
+          drawTime: formattedDrawTime,
+          ticketNo: formattedTicketNo,
+          point: ticket.totalPoints,
+          quantity: ticket.totalQuatity,
         });
       });
+    });
 
-      setTickets(allTickets);
-    } catch (err) {
-      console.error(err);
-      toast.error("Failed to load tickets.");
-    } finally {
-      setLoading(false);
-    }
-  }, [loginId]);
+    setTickets(allTickets);
+  } catch (err) {
+    console.error(err);
+    toast.error("Failed to load tickets.");
+  } finally {
+    setLoading(false);
+  }
+}, [loginId]);
 
   /* ---------- Load Cancelled Tickets ---------- */
   const fetchCancelledTickets = useCallback(async () => {
@@ -178,27 +188,41 @@ if (Array.isArray(ticket.ticketNumber)) {
     }
   }, []);
 
-  /* ---------- Cancel Ticket ---------- */
-  const handleCancel = async (ticketNo) => {
-    if (isCancelling) return;
-    const confirmed = window.confirm("Are you sure you want to cancel this ticket?");
-    if (!confirmed) return;
+const handleCancel = async (ticketId) => {
+  if (isCancelling) return;
 
-    try {
-      setIsCancelling(true);
-      setLoading(true);
-      await axios.post(`${process.env.NEXT_PUBLIC_API_BASE_URL}/cancel-ticket`, {
-        ticketNo,
-      });
-      setTickets((prev) => prev.filter((row) => row.ticketNo !== ticketNo));
-      toast.success("Ticket cancelled successfully.");
-    } catch {
-      toast.error("Failed to cancel ticket.");
-    } finally {
-      setLoading(false);
-      setIsCancelling(false);
-    }
-  };
+  const confirmed = window.confirm(
+    "Are you sure you want to cancel this ticket?"
+  );
+  if (!confirmed) return;
+
+  try {
+    console.log("Sending ticketId:", ticketId);
+
+    setIsCancelling(true);
+    setLoading(true);
+
+    await axios.post(
+      `${process.env.NEXT_PUBLIC_API_BASE_URL}/cancel-ticket`,
+      {
+        ticketId,
+      }
+    );
+
+    // Remove cancelled ticket from UI
+    setTickets((prev) =>
+      prev.filter((row) => row.id !== ticketId)
+    );
+
+    toast.success("Ticket cancelled successfully.");
+  } catch (err) {
+    console.error(err);
+    toast.error("Failed to cancel ticket.");
+  } finally {
+    setLoading(false);
+    setIsCancelling(false);
+  }
+};
 
   /* ---------- Filter + Pagination ---------- */
   let filtered = tickets;
@@ -206,7 +230,7 @@ if (Array.isArray(ticket.ticketNumber)) {
     filtered = filtered.filter((row) =>
       String(row.ticketNo).toLowerCase().includes(search.toLowerCase())
     );
-  }
+}
 
   const totalPages = Math.ceil(filtered.length / showEntries);
   const startIdx = (current - 1) * showEntries;
@@ -412,7 +436,7 @@ if (Array.isArray(ticket.ticketNumber)) {
                       </td>
                       <td className="px-6 py-4 text-center">
                         <button
-                          onClick={() => handleCancel(row.ticketNo)}
+                          onClick={() => handleCancel(row.id)}
                           disabled={isCancelling}
                           className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-white text-sm font-semibold shadow-lg transition-all duration-200 group ${
                             isCancelling

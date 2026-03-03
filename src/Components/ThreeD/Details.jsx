@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { RefreshCcw, List, XCircle, KeyRound, LogOut, UserCircle, Box } from "lucide-react";
+import { RefreshCcw, List, XCircle, KeyRound, LogOut, UserCircle, Box, Notebook } from "lucide-react";
 import axios from "axios";
 
 const Details = () => {
@@ -25,6 +25,7 @@ const Details = () => {
     { name: "Account", href: "/3Daccount", icon: <UserCircle className="w-5 h-5" /> },
     { name: "Reprint", href: "/3Dreprint", icon: <RefreshCcw className="w-5 h-5" /> },
     { name: "Cancel", href: "/3Dcancel", icon: <XCircle className="w-5 h-5" /> },
+    { name: "Result", href: "/3Dresult", icon: <Notebook className="w-5 h-5" /> },
     { name: "2d", href: "/dashboard", icon: <Box className="w-5 h-5" /> },
   ];
 

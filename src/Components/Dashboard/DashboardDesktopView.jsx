@@ -191,7 +191,21 @@ export default function Page() {
   const LS_KEY = "sjTicketsV1";
   const [storeByNum, setStoreByNum] = useState({});
 
-  useEffect(() => {
+  useEffect(()=>{ 
+
+    if(currentDrawSlot) {
+      localStorage.setItem("currentDrawSlot", currentDrawSlot);
+      console.log(currentDrawSlot, "saved in localstorage");
+    }
+
+  },[currentDrawSlot])
+
+const hasCheckedBlock = useRef(false);
+
+useEffect(() => {
+  if (hasCheckedBlock.current) return;
+  hasCheckedBlock.current = true;
+
   async function checkBlockStatus() {
     const adminId = getLoginIdFromToken();
     if (!adminId) return;
@@ -207,14 +221,6 @@ export default function Page() {
       if (data?.blockStatus === true) {
         setIsBlocked(true);
         setBlockTill(data.blockTill);
-
-        toast.error(
-          `🚫 You are blocked until ${new Date(data.blockTill).toLocaleString()}`,
-          {
-            duration: Infinity, // stays forever
-            position: "top-right",
-          }
-        );
       } else {
         setIsBlocked(false);
       }
@@ -225,7 +231,6 @@ export default function Page() {
 
   checkBlockStatus();
 }, []);
-
 
   useEffect(() => {
     try {
@@ -1194,27 +1199,32 @@ const handleClaimTicket = async () => {
     }
   }
 
-  useEffect(() => {
-    const id = getLoginIdFromToken();
-    if (!id) return;
+const hasFetchedNavbar = useRef(false);
 
-    setGameIdBox(String(id));
+useEffect(() => {
+  if (hasFetchedNavbar.current) return;
+  hasFetchedNavbar.current = true;
 
-    axios
-      .post(`${process.env.NEXT_PUBLIC_API_BASE_URL}/navbar-details`, {
-        loginId: id,
-      })
-      .then((res) => {
-        setLastPoints(parseInt(res.data.lastTotalPoint) ?? "-");
-        setLastTicket(res.data.lastTicketNumber ?? "-");
-        setBalance(res.data.balance ?? "-");
-      })
-      .catch(() => {
-        setLastPoints("-");
-        setLastTicket("-");
-        setBalance("-");
-      });
-  }, []);
+  const id = getLoginIdFromToken();
+  if (!id) return;
+
+  setGameIdBox(String(id));
+
+  axios
+    .post(`${process.env.NEXT_PUBLIC_API_BASE_URL}/navbar-details`, {
+      loginId: id,
+    })
+    .then((res) => {
+      setLastPoints(parseInt(res.data.lastTotalPoint) ?? "-");
+      setLastTicket(res.data.lastTicketNumber ?? "-");
+      setBalance(res.data.balance ?? "-");
+    })
+    .catch(() => {
+      setLastPoints("-");
+      setLastTicket("-");
+      setBalance("-");
+    });
+}, []);
 
   function getFormattedDateTime() {
     const now = new Date();
